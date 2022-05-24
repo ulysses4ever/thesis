@@ -1,0 +1,637 @@
+%% Formatting
+\newcommand{\EM}[1]{\ensuremath{#1}\xspace}
+\newcommand{\xt}[1]{{\sf{#1}}}
+\newcommand{\bt}[1]{\xt{\bf #1}}
+\newcommand{\EMxt}[1]{\EM{\xt{#1}}}
+
+% struct type
+\newcommand{\Struct}[3]  {\EM{\bt{struct}\;#1\,\bt{is}\,#2\,\bt{end}}}
+\newcommand{\any}    {\EMxt{any}}  %% any type
+\newcommand{\obj}    {\EMxt{obj}}  %% object type
+\renewcommand{\P}{\EMxt{P}}           %% compiled program
+\renewcommand{\S}{\EMxt{S}}           %% source program
+\newcommand{\M}{\EMxt{M}}           %% method table
+\newcommand{\Red}{\EM{\rightarrow}} %% reduction step
+\newcommand{\Comp}{\EM{\Rightarrow}} %% compilation step
+\newcommand{\m}   {\EMxt m}          %% method name
+\newcommand{\emp}{\EM{\epsilon}}  %% empty
+
+
+\DeclareDocumentCommand\TR{om}{\EM{\IfNoValueTF{#1}{\PackageWarning{}{Undefined Type System}}{#1}\llbracket #2 \rrbracket}}
+
+\DeclareDocumentCommand\TRG{omm}{\EM{\IfNoValueTF{#1}{\PackageWarning{}{Undefined Type System}}{#1}\llbracket #2 \rrbracket_{#3}}}
+\DeclareDocumentCommand\TAG{ommm}{\EM{\IfNoValueTF{#1}{\PackageWarning{}{Undefined Type System}}{#1}\llparenthesis #2 \rrparenthesis_{#3}^{#4}}}
+
+\newcommand{\OTS}{{\mathcal{O}}}
+\newcommand{\CTS}{{\mathcal{C}}}
+\newcommand{\BTS}{{\mathcal{B}}}
+\newcommand{\TTS}{{\mathcal{T}}}
+\newcommand{\SOMS}{{\mathcal{S}}}
+\newcommand{\sspce}{;~}
+\newcommand{\idbody}[1]{\SubCast{#1}\x\sspce \SubCast{#1}\x}
+
+\newcommand{\bscast}[2]{\EM{\BehCast{#1}{{#2}}}}
+\newcommand{\kty}[1]{\EM{\xt{kty}(#1)}}
+
+\newcommand{\WHERE}{~\EM{\xt{\bf where}}~}
+\newcommand{\OR}{\EM{~\xt{\bf or}}~}
+\newcommand{\IF}{\EM{~\xt{\bf if}}~}
+
+\newcommand{\HS}{\hspace{.2cm}}
+\newcommand{\LS}{\hspace{1cm}}
+\newcommand{\namet}[2]{\EM{#1\!\!\,:\,\!#2}}
+\newcommand{\TypeCk}[3]{\EM{#1\vdash #2:#3}}
+
+%% Variables
+\newcommand{\x}   {\EMxt x}
+\newcommand{\xp}   {\EMxt{x'}}
+\newcommand{\n}   {\EMxt n}
+
+\renewcommand{\mp}   {\EMxt{m'}}
+\newcommand{\s}   {\EM{\sigma}}
+\DeclareDocumentCommand\a{o}{\IfNoValueTF{#1}{\EMxt {a}}{\EM{\xt {a}_{#1}}}}
+\DeclareDocumentCommand\ap{o}{\IfNoValueTF{#1}{\EMxt {a'}}{\EM{\xt {a'}_{#1}}}}
+\DeclareDocumentCommand\app{o}{\IfNoValueTF{#1}{\EMxt {a''}}{\EM{\xt {a''}_{#1}}}}
+\DeclareDocumentCommand\t{o}{\IfNoValueTF{#1}{\EMxt t}{\EM{\xt t_{#1}}}}
+\DeclareDocumentCommand{\tp}{o}{\IfNoValueTF{#1}{\EM{ \xt t' }}{\EM{\xt t_{#1}'}}}
+\DeclareDocumentCommand{\tpp}{o}{\IfNoValueTF{#1}{\EM{ \xt t'' }}{\EM{\xt t_{#1}''}}}
+\DeclareDocumentCommand{\tppp}{o}{\IfNoValueTF{#1}{\EM{ \xt t''' }}{\EM{\xt t_{#1}'''}}}
+\DeclareDocumentCommand{\e}{o}{\IfNoValueTF{#1}{\EM{ \xt e }}{\EM{\xt e_{#1}}}}
+\DeclareDocumentCommand{\ep}{o}{\IfNoValueTF{#1}{\EM{ \xt e' }}{\EM{\xt e_{#1}'}}}
+\DeclareDocumentCommand{\epp}{o}{\IfNoValueTF{#1}{\EM{ \xt e'' }}{\EM{\xt e''_{#1}}}}
+\DeclareDocumentCommand{\eppp}{o}{\IfNoValueTF{#1}{\EM{ \xt e''' }}{\EM{\xt e'''_{#1}}}}
+\DeclareDocumentCommand{\fd}{o}{\IfNoValueTF{#1}{\EM{ \xt{fd} }}{\EM{\xt{fd}_{#1}}}}
+\DeclareDocumentCommand{\fdp}{o}{\IfNoValueTF{#1}{\EM{ \xt{fd}' }}{\EM{\xt{fd}_{#1}'}}}
+\DeclareDocumentCommand{\fdpp}{o}{\IfNoValueTF{#1}{\EM{ \xt{fd}'' }}{\EM{\xt{fd}_{#1}''}}}
+\DeclareDocumentCommand{\fdppp}{o}{\IfNoValueTF{#1}{\EM{ \xt{fd}''' }}{\EM{\xt{fd}_{#1}'''}}}
+\DeclareDocumentCommand{\md}{o}{\IfNoValueTF{#1}{\EM{ \xt{md} }}{\EM{\xt{md}_{#1}}}}
+\DeclareDocumentCommand{\f}{o}{\IfNoValueTF{#1}{\EM{ \xt f }}{\EM{\xt f_{#1}}}}
+\DeclareDocumentCommand{\mdp}{o}{\IfNoValueTF{#1}{\EM{ \xt{md}' }}{\EM{\xt{md}_{#1}'}}}
+\DeclareDocumentCommand{\mdpp}{o}{\IfNoValueTF{#1}{\EM{ \xt{md}'' }}{\EM{\xt{md}_{#1}''}}}
+\DeclareDocumentCommand{\mdppp}{o}{\IfNoValueTF{#1}{\EM{ \xt{md}''' }}{\EM{\xt{md}_{#1}'''}}}
+\DeclareDocumentCommand{\C}{o}{\IfNoValueTF{#1}{\EM{ \xt{C} }}{\EM{\xt{C}_{#1}}}}
+\DeclareDocumentCommand{\mt}{o}{\IfNoValueTF{#1}{\EM{ \xt{mt} }}{\EM{\xt{mt}_{#1}}}}
+\DeclareDocumentCommand{\mtp}{o}{\IfNoValueTF{#1}{\EM{ \xt{mt}' }}{\EM{\xt{mt}_{#1}'}}}
+\DeclareDocumentCommand{\mtpp}{o}{\IfNoValueTF{#1}{\EM{ \xt{mt}'' }}{\EM{\xt{mt}_{#1}''}}}
+\DeclareDocumentCommand{\mtppp}{o}{\IfNoValueTF{#1}{\EM{ \xt{mt}''' }}{\EM{\xt{mt}_{#1}'''}}}
+\DeclareDocumentCommand{\D}{o}{\IfNoValueTF{#1}{\EM{ \xt{D} }}{\EM{\xt{D}_{#1}}}}
+\DeclareDocumentCommand{\Dp}{o}{\IfNoValueTF{#1}{\EM{ \xt{D'} }}{\EM{\xt{D'}_{#1}}}}
+\DeclareDocumentCommand{\Dpp}{o}{\IfNoValueTF{#1}{\EM{ \xt{D''} }}{\EM{\xt{D''}_{#1}}}}
+
+
+\newcommand{\K}   {\EMxt K}
+\renewcommand{\k} {\EMxt k}
+\newcommand{\Kk}   {\K~\k}
+\newcommand{\Kp}  {{\EMxt{K'}}}
+\newcommand{\Kpp}  {{\EMxt{K''}}}
+\newcommand{\Kppp}  {{\EMxt{K'''}}}
+\renewcommand{\sp}{{{\EM{\s'}}}}
+\newcommand{\spp}{{{\EM{\s''}}}}
+\newcommand{\A}   {\EMxt {A}}
+\newcommand{\I}   {\EMxt {I}}
+\newcommand{\E}   {\EMxt {E}}
+\newcommand{\Cp}  {\EMxt{C'}}
+\newcommand{\Cpp}  {\EMxt{C''}}
+\newcommand{\Cppp}  {\EMxt{C'''}}
+\newcommand{\cmd}  {\EMxt{M}}
+\newcommand{\cmdp}  {\EMxt{M'}}
+\newcommand{\Env}   {\EM{\Gamma}}
+\newcommand{\Envp}   {\EM{\Gamma'}}
+\newcommand{\EE}   {\EM{\textsf{{E}}}}
+\newcommand{\this}{\EMxt{this}}
+\newcommand{\that}{\EMxt{that}}
+\newcommand{\none}{\EM{\cdot}}
+\newcommand{\CW}    {\EMxt{?C}}
+\newcommand{\CWp}   {\EMxt{?C'}}
+\newcommand{\CWpp}  {\EMxt{?C''}}
+\newcommand{\DW}     {\EMxt{?D}}
+\newcommand{\DWp}    {\EMxt{?D'}}
+\newcommand{\DWpp}   {\EMxt{?D''}}
+
+
+\newcommand{\FRead}[1]   {\EM{\this.#1}}
+\newcommand{\FWrite}[2]  {\EM{\this.#1} = #2}
+\newcommand{\FReadR}[2]   {\EM{#1.#2}}
+\newcommand{\FWriteR}[3]  {\EM{#1.#2} = #3}
+\newcommand{\Call}[3]  {\EM{#1.#2(#3)}}
+\newcommand{\KCall}[5] {\EM{{#1}.{#2}_{{#4} \shortrightarrow {#5}}(#3)}}
+\newcommand{\DynCall}[3]  {\EM{#1@#2_{\any\shortrightarrow\any}(#3)}}
+\newcommand{\sDynCall}[3]  {\EM{#1@#2(#3)}}
+
+\newcommand{\New}[2]   {\EM{\new\;#1(#2)}}
+%\newcommand{\SubCast}[2]{\EM{<\hspace{-.6mm}{#1}\hspace{-.6mm}>\hspace{-1mm}\;{#2}}}
+\newcommand{\SubCast}[2]{\EM{\langle{#1}\rangle\,{#2}}}
+\newcommand{\BehStart}{\EM{\blacktriangleleft}}
+\newcommand{\BehEnd}{\EM{\blacktriangleright}}
+\newcommand{\BehCast}[2]{\EM{\BehStart\! #1\! \BehEnd #2}}
+
+\newcommand{\new}      {\EM{\bt{new}}}
+\newcommand{\HT}[2]    {\EM{{#1}\!:{#2}}}
+\newcommand{\Mdef}[5]  {\EM{ \HT{ #1( \HT{#2}{#3})}{#4}\;\{{#5}\}}}
+\newcommand{\ThorSub}[4]{\EM{#1~#2 \vdash #3 \Sub_t #4}}
+\newcommand{\behcast}[7]{\EM{#5\,#6\,#7 = \xt{bcast}(#1, #2, #3, #4)}}
+\newcommand{\behcastE}[7]{\EM{\xt{bcast}(#1, #2, #3, #4) = #5\,#6\,#7}}
+\newcommand{\behcastS}[4]{\EM{\xt{bcast}(#1, #2, #3, #4)}}
+
+\newcommand{\Alt}[1]   { &\B #1 \\}
+\newcommand{\B}        {\EM{~|~}}
+
+\newcommand{\Reduce}[6]   {\EM{{#1}~{#2}~{#3} \Red {#4}~{#5}~{#6}}}
+\newcommand{\ReduceA}[6]  {\EM{#1~#2~#3 } & \EM{\Red #4~#5~#6}}
+\newcommand{\class}       {\EM{\bf{class}}}
+\newcommand{\Class}[3]    {\EM{\bt{class}\;#1\,\{\,#2~#3\,\}}}
+
+\newcommand{\Fdef}[2]    {\EM{ \HT{#1}{#2} }}
+\newcommand{\Mtype}[3]    {\EM{ \HT{#1(#2)}{#3}}}
+\newcommand{\opdef}[2]    {\frmbox[1.1\width]{#1} ~ #2\\}
+\newcommand{\Map}[2]     {\EM{ #1[#2] }}
+\newcommand{\Bind}[2]     {\EM{#1 \mapsto #2}}
+
+\newcommand{\Sub}{\EM{<:}}
+\newcommand{\OK}{\EM{~\checkmark}}
+\newcommand{\names}[1]{\EM{\xt{names}(#1)}}
+\newcommand{\cload}[1]{\EM{\xt{nodups}(#1)}}
+
+\newcommand{\ConsSub}{\EM{\lesssim}}
+
+\newcommand{\EvalRulePassthrough}[1]{#1}
+\newcommand{\EvalRuleLabel}[1]{\EvalRulePassthrough{\tiny\scshape\textcolor{gray}{#1}}}
+\newcommand{\CondRule}[3]{ \EvalRuleLabel{#1} & #3 & #2 \\}
+\newcommand{\SuchRule}[3]{ #3 &~{\emph{s.t.}} #2 \\}
+\newcommand{\EnvType}[5]{ \EM{#1\,#2\,#3\vdash #4 : #5}}
+\newcommand{\EnvTypex}[5]{ \EM{#1\,#2\,#3\vdash_{\!s} #4 : #5}}
+
+\newcommand{\RuleRef}[1]{\hyperlink{infer:#1}{\TirNameStyle{#1}}}
+\newcommand{\IRule}[4][]{\inferrule*[lab={\tiny \hypertarget{infer:#2}{#2}},#1]{#3}{#4}}
+\newcommand{\Rule}[4][]{\inferrule*{#3}{#4}}
+\newcommand{\HasType}[3]{ \EM{#1} (\EM{#2}) = \EM{#3}}
+\newcommand{\wrap}[4]{\EM{\xt{W}(#1,#2,#3,#4)}}
+\newcommand{\wrapE}[1]{\EM{\xt{W}(#1)}}
+\newcommand{\wrapAny}[3]{\EM{\xt{W}\!\any(#1,#2,#3)}}
+
+\newcommand{\classoff}[2]{\EM{\xt{mtypes}(#1,~#2)}}
+
+\newcommand{\mtype}[3]{\EM{\xt{mtype}(#1,#2,#3)}}
+
+\newcommand{\Convertible}[3]{\EM{#1 \vdash #2 \Mapsto #3}}
+\newcommand{\ConvertE}[4]{\EM{#1 \vdash_{\!s} #3 \Mapsto #4}}
+\newcommand{\In}{\EM{\in}}
+\newcommand{\T}{\EM{\xt T}}
+\newcommand{\AND}{\EM{\wedge}}
+\newcommand{\App}[2]{\EM{#1(#2)}}
+
+\newcommand{\SSub}[4]{\EM{#1~#2\vdash_{\!s} #3\Sub #4}}
+\newcommand{\StrSub}[4]{\EM{#1~#2\vdash #3\Sub #4}}
+\newcommand{\StrNotSub}[4]{\EM{#1~#2\vdash #3 \not\Sub #4}}
+\newcommand{\ThrSub}[4]{\EM{#1~#2\vdash_{\!s} #3~\src\Sub~#4}}
+\newcommand{\ConSub}[4]{\EM{#1~#2 \vdash #3 \lesssim #4}}
+\newcommand{\OKW}{\EM{~\checkmark_{s}}}
+\newcommand{\OKX}[1]{\EM{~\checkmark_{#1}}}
+\newcommand{\EnvTypeW}[4]{ \EM{#1\,#2\vdash_{\!s} #3 : #4}}
+\newcommand{\EnvTypeS}[4]{ \EM{#1\,#2\vdash_{\!s} #3 : #4}}
+\newcommand{\EnvTypeT}[4]{ \EM{#1\,#2\vdash_{\!s} #3 : #4}}
+\newcommand{\EnvTypeE}[5]{ \EM{#1\,#2\vdash_{\!s} #4 : #5}}
+\newcommand{\trulename}[1]{#1}
+
+\newcommand{\sign}[1]{\xt{signature}(#1)}
+
+\newcommand{\WFtype}[2]{\EM{#1\vdash#2 \OK}}
+\newcommand{\WF}[4]{\EM{#1\,#2\,#3\vdash#4 \OK}}
+\newcommand{\WFp}[2]{#1~#2\OK}
+\newcommand{\WFq}[1]{#1\OK}
+
+\newcommand{\WFpx}[2]{#1~#2\OK_x}
+\newcommand{\WFx}[4]{\EM{#1\,#2\,#3\vdash_{\!s}~#4 \OK}}
+\newcommand{\WFX}[5]{\EM{#1\,#2\,#3\vdash_{\!#5}~#4 \OK}}
+\newcommand{\WFtypex}[2]{\EM{#1\vdash_{\!s}~ #2 \OK}}
+\newcommand{\WFtypeX}[3]{\EM{#1\vdash_{\!s}~ #3 \OK}}
+
+\newcommand{\WFtypeW}[2]{\EM{#1\vdash_{\!s}~ #2 \OK}}
+\newcommand{\WFW}[3]{\EM{#1\,#2\vdash_{\!s}~#3 \OK}}
+\newcommand{\WFpW}[2]{#1~#2\OKW}
+\newcommand{\WFpX}[3]{\EM{#1~#2\OKX{#3}}}
+
+\newcommand{\V}{\EM{\checkmark}}
+
+\newcommand{\dyn}[1]{\xt{dyn}(#1)}
+
+\newcommand{\fresh}[1]{\EM{#1~\xt{fresh}}}
+\newcommand{\Kt}[1]{\EM{\text{ktype}(#1)}}
+\newcommand{\All}[1]{\EM{\forall ~\xt #1 ~.~}}
+\newcommand{\SP}{\hspace{.5cm}}
+\newcommand{\SPP}{\SP\SP}
+
+\newcommand{\kafka}{{\sf KafKa}\xspace}
+\newcommand{\src}[1]{\colorbox[gray]{0.89}{$#1$}}
+\newcommand{\dt}[1]{\,\xt{?}#1}
+\newcommand{\consistent}[3]{\EM{#1 \vdash #2 ~\sim~ #3}}
+\newcommand{\rtranst}[6]{#1 \Rightarrow #2 ~ #3 / #4 \vdash #5 \looparrowright_{beh} #6}
+\newcommand{\rtranstz}[4]{#1 \Rightarrow #2 \vdash #3 \looparrowright_{mon} #4}
+
+
+\makeatletter
+\newcommand{\efqn}{
+\foreach\n in {1,...,\@listdepth}{foo}
+}
+\makeatother
+\newlist{myEnumerate}{enumerate}{10}
+
+\newenvironment{proofy}{
+  \begin{myEnumerate}[resume=proofsteps,label={\textbf{\arabic*}. },ref=\arabic*]
+}{
+  \end{myEnumerate}
+}
+\DeclareDocumentCommand\stepp{o}{\IfNoValueTF{#1}{\item}{\item\hypertarget{proofstep:#1}{}\label{proofstep:#1}}}
+
+\newcommand{\basis}{\hfill}
+\newcommand{\caseof}[1]{\item\text{Case: } #1}
+\newcommand{\rcaseof}[1]{\item\text{Case: } \RuleRef{#1}}
+
+\newcommand{\refby}[1]{%
+  \def\nextitem{\def\nextitem{,}}% Separator
+  \renewcommand*{\do}[1]{\nextitem\hyperlink{proofstep:##1}{\ref{proofstep:##1}}}% How to process each item
+  (\docsvlist{#1})% Process list
+}
+\newenvironment{casel}{
+  \begin{myEnumerate}[label={\Alph*. }]
+}{
+  \end{myEnumerate}
+}
+\newenvironment{iknown}{
+  \begin{enumerate*}[series=proofsteps,label={\textbf{\arabic*}. },ref=\arabic*]
+}{
+  \end{enumerate*}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+
+\newcommand{\greyBox}[1]{\colorbox[gray]{0.89}{$#1$}}
+
+% Math definitions.
+\newcommand{\ebox}[1]{\fbox{#1}\hfill\vspace{-1em}\centering}
+\newcommand{\ex}[2]{\exists#1.~#2}
+\newcommand{\fa}[2]{\forall#1.~#2}
+\newcommand{\crd}[1]{\left|\ol{#1}\right|}
+
+% Environment definitions.
+\newcommand{\nothing}{\cdot}
+\newcommand{\ctx}[2]{#1\vdash#2}
+\newcommand{\ctxol}[2]{\ol{#1\vdash#2}}
+\newcommand{\tjdg}[3]{\ctx{#1}{#2:#3}}
+\newcommand{\gtjdg}[2]{\tjdg{\Gamma}{#1}{#2}}
+\newcommand{\ctjdg}[3]{\tjdg{\Gamma,#1}{#2}{#3}}
+\newcommand{\etjdg}[2]{\tjdg{\nothing}{#1}{#2}}
+\newcommand{\tjdgol}[3]{\ctx{#1}{\ol{#2:#3}}}
+\newcommand{\gtjdgol}[2]{\tjdgol{\Gamma}{#1}{#2}}
+\newcommand{\ctjdgol}[3]{\tjdgol{\Gamma,#1}{#2}{#3}}
+\newcommand{\etjdgol}[2]{\tjdgol{\nothing}{#1}{#2}}
+
+\newcounter{rules}
+\newenvironment{rules}[2]{\vspace{0.5em}\ebox{#2}
+  \vspace{-1.5em}\setlength{\parskip}{2em}
+  \renewenvironment{rule}[1]{%
+    \protected@edef\@currentlabel{\textsc{#1-##1}}
+    \RightLabel{(\textsc{#1-##1})}
+  }{}
+}{\vspace{1em}}
+
+% Multiplicities with overline.
+\newcommand{\ol}[1]{\EM{\overline{#1}}}
+
+% Proof summaries.
+\newcounter{theo}
+\renewcommand{\thetheo}{\textbf{\arabic{theo}}}
+\newcommand{\theo}[1]
+  {\vspace{0.5em}\noindent\refstepcounter{theo}\textbf{Theorem}~\thetheo~(#1).}
+\newcounter{lem}
+\renewcommand{\thelem}{\textbf{\arabic{lem}}}
+\newcommand{\lem}[1]
+  {\vspace{0.5em}\noindent\refstepcounter{lem}\textbf{Lemma}~(#1).}
+
+
+\newcommand{\listindent}{\addtolength\leftskip{2em}}
+
+\newenvironment{analysis}[1]
+  {\vspace{.5em} \textbf{Case analysis} on #1\par
+    \renewcommand{\thestep}{\textbf{\roman{step}}}}{}
+
+\newcommand{\stepwidth}{.55\textwidth-\leftskip}
+\newcommand{\numwidth}{3.5em}
+
+\newcommand{\numbox}[2]{\refstepcounter{#1}\makebox[\numwidth][l]{#2.}}
+\newcommand{\stepnum}{\numbox{step}{\thestep}}
+
+\newcommand{\statem}[1]{\stepspace\stepnum #1}
+\newcommand{\sletsingle}[1]{\stepspace\stepnum\textbf{let}~#1}
+\newcommand{\slet}[2]{\stepspace\stepnum\textbf{let}~#1~=~#2}
+\newcommand{\slets}[3]{\stepspace\stepnum\makebox[\stepwidth][l]{\textbf{let}~#1~=~#2} by #3}
+\newcommand{\sletwhere}[3]{\stepspace\stepnum\textbf{let}~#1~=~#2 \textbf{where} #3}
+\newbool{stepspace}
+\newcommand{\stepspace}
+  {\ifbool{stepspace}{\vspace{0.4em}\boolfalse{stepspace}}{}\par}
+\newcommand{\step}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} by #2}
+\newcommand{\longstep}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[9.4cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepA}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.65cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepAA}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[10.2cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepAAA}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[14.80cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepB}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[12.25cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepC}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.75cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepD}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[8.5cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepE}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[8.75cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepF}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.2cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepG}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.2cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepH}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[13.5cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepI}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.3cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepII}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[12.0cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepIII}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[13.2cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepMJ}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.0cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepMK}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.7cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepML}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.2cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepMM}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.2cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepMN}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.0cm+\numwidth + \stepwidth] {by #2}}
+\newcommand{\longstepMO}[2]
+  {\stepspace\par\stepnum\makebox[\stepwidth][l]{#1} \par\makebox[11.2cm+\numwidth + \stepwidth] {by #2}}
+
+\newsavebox{\stepsby}
+\newenvironment{steps}[1]
+  {\savebox{\stepsby}{#1}
+    \renewcommand{\step}[1] {\stepnum##1\par}\stepspace
+    \begin{math}\left.\hspace{-.1em}\begin{minipage}{\numwidth+\stepwidth}}
+  { \end{minipage}\right\}\end{math} by \usebox{\stepsby}\par}
+
+\newenvironment{longsteps}[1]
+  {\newcommand{\stepsbysavedvalue}{#1}
+    \renewcommand{\step}[1] {\stepnum##1\par}\stepspace
+    \begin{math}\left.\hspace{-.1em}\begin{minipage}{\numwidth+\stepwidth}}
+  { \end{minipage}\right\}\end{math} \begin{minipage}{\textwidth-\stepwidth+1em}by \stepsbysavedvalue{}\end{minipage}\par}
+
+% \newenvironment{for}[2]
+%  {\vspace{.5em}For all~#1$~\in~$#2\par\listindent\stepcounter{steps}
+%    \renewcommand{\thestep}{\textbf{\roman{step}}}\booltrue{stepspace}}
+%  {\par\booltrue{stepspace}\stepcounter{steps}}
+
+\newcommand{\qs}{\quad\quad}
+\newcommand{\na}{case N/A}
+\newcommand{\trivial}{\vspace{.4em}Trivial.}
+\newcommand{\trivialind}
+  {\vspace{.4em}Result follows directly from the induction hypothesis.}
+\newcommand{\done}[1]{\step{done}{#1}}
+\newcommand{\byeq}[1]{\ref{eq:#1}}
+\newcommand{\byind}{ind hyp}
+\newcommand{\bycontra}{contradiction}
+\newcommand{\bysubst}{substitution}
+\newcommand{\byrewrite}{Barendregt}
+\newcommand{\byprem}[1]{prem~\ref{eq:#1}}
+\newcommand{\byprems}[1]{prems~\ref{eq:#1}}
+\newcommand{\bylem}[1]{lemma~\ref{lem:#1}}
+\newcommand{\bylems}[2]{lemmas~\ref{lem:#1},~\ref{lem:#2}}
+\newcommand{\byth}[1]{theorem~\ref{th:#1}}
+\newcommand{\bythh}[2]{theorems~\ref{th:#1},~\ref{th:#2}}
+\newcommand{\byfun}[1]{\fname{#1}}
+
+\newcommand{\bypre}[2]{the premise of \texttt{\sc #1} on #2}
+\newcommand{\bydef}[2]{the definition of \texttt{\sc #1} on #2}
+\newcommand{\bydefE}[3]{the definition of \texttt{\sc #1} on #2 with #3}
+\newcommand{\byjdg}[2]{\texttt{\sc #1} on #2}
+\newcommand{\bysub}[1]{substitution convention on #1}
+\newcommand{\bypres}[2]{the premises of \texttt{\sc #1} on #2}
+\newcommand{\bylemm}[3]{\texttt{\sc lemma #1} on #3}
+\newcommand{\bylemms}[3]{\texttt{\sc lemma #1:} #2 on #3}
+\newcommand{\byweaklemm}[3]{\texttt{\sc Weakening lemma #1} on #3}
+\newcommand{\byweaklemms}[3]{\texttt{\sc Weakening lemma #1:} #2 on #3}
+\newcommand{\byindhyp}[1]{the inductive hyp on #1}
+\newcommand{\bycons}[1]{the contradiction assumption on #1}
+\newcommand{\bycontrad}[1]{contradicting statements #1}
+\newcommand{\bysyn}[1]{syntax convention on #1}
+\newcommand{\bysubs}[1]{substitution convention of #1}
+
+\newcommand{\indmsg}[1]{induction on the derivation of #1}
+\newcommand{\ind}[1]{by straightforward \indmsg{#1}.}
+\newcommand{\indana}[1]{by \indmsg{#1}, with a case analysis on the last step: \\}
+\newcommand{\indanaa}[1]{by \indmsg{#1}, with a case analysis on the last step. \\}
+\newcommand{\strind}[1]{by structural induction on #1:}
+\newcommand{\innat}{by natural deduction.\\}
+\newcommand{\innatE}[1]{by natural deduction #1.\\}
+\newcommand{\contrad}{by contradiction.\\}
+
+\newcommand{\dyninsidesubmany}[3]{\ensuremath{\heap \vdash #1 (\overline{#2 \preceq #3})}}
+\newcommand{\dyninsidesubmanyC}[3]{\ensuremath{#1 \vdash \overline{#2 \preceq #3}}}
+\newcommand{\dyninsidesubmanyE}[5]{\ensuremath{#1 \vdash #2( #3 (\overline{#4 \preceq #5}))}}
+\newcommand{\dyninsidesubmanyA}[4]{\ensuremath{#1 \vdash #2 (\overline{#3 \preceq #4})}}
+\newcommand{\dyninsidesubmanyB}[3]{\ensuremath{#1 \vdash \overline{#2 \preceq #3}}}
+\newcommand{\oks}{\mbox{ \sc ok}}
+
+\ProvidesFile{omscmtt.fd}
+\DeclareFontFamily{OMS}{cmtt}{\skewchar\font48 }
+\DeclareFontShape{OMS}{cmtt}{m}{n}%
+   {<->ssub*cmsy/m/n}{}
+\DeclareFontShape{OMS}{cmtt}{m}{it}%
+   {<->ssub*cmsy/m/n}{}
+\DeclareFontShape{OMS}{cmtt}{m}{sl}%
+   {<->ssub*cmsy/m/n}{}
+\DeclareFontShape{OMS}{cmtt}{m}{sc}%
+   {<->ssub*cmsy/m/n}{}
+\DeclareFontShape{OMS}{cmtt}{bx}{n}%
+   {<->ssub*cmsy/b/n}{}
+\DeclareFontShape{OMS}{cmtt}{bx}{it}%
+   {<->ssub*cmsy/b/n}{}
+\DeclareFontShape{OMS}{cmtt}{bx}{sl}%
+   {<->ssub*cmsy/b/n}{}
+\DeclareFontShape{OMS}{cmtt}{bx}{sc}%
+   {<->ssub*cmsy/b/n}{}
+
+\newcommand{\IGNOREUNLESSNEEDED}[1]{}
+\newcommand{\figref}[1]{Fig.~\ref{#1}\xspace}
+\newcommand{\lemref}[1]{Lem.~\ref{#1}\xspace}
+\newcommand{\thmref}[1]{Thm.~\ref{#1}\xspace}
+\newcommand{\ruleref}[1]{Rule~{\small #1}\xspace}
+\newcommand{\secref}[1]{Sec.~\ref{#1}\xspace}
+\newcommand{\defref}[1]{Def.~\ref{#1}\xspace}
+\newcommand{\appref}[1]{Appendix~\ref{#1}\xspace}
+
+\newcommand{\wraps}[2]{#1\hspace{-0.2em}\Rightarrow\hspace{-0.2em}#2}
+\renewcommand{\EM}[1]{\ensuremath{#1}\xspace}   %% make sure we are in math mode
+\newcommand{\alt}{~\vert~}
+\newcommand{\SF}[1]{\mathsf{#1}}                %% plain font for code elements in math
+\newcommand{\SC}[1]{\textsc{#1}}
+\newcommand{\tinyb}[1]{\scalebox{0.8}{{\normalsize #1}}}  %%% small
+\renewcommand{\v}[1]{\EM{{\tinyb{\%}}\SF{#1}}}  %% variables start with a %
+\newcommand{\tdef}[2]{\EM{#1\!::\!\SF{#2}}}     %% type definition have a ::
+\newcommand{\val}{\EM{\SF{v}}}                  %% value
+\newcommand{\tv}[2]{\EM{\tdef{\v{#1}}{#2}}}     %%  a typed variable
+\newcommand{\ass}[2]{\EM{\v{#1} \leftarrow #2}} %%% assignment
+\newcommand{\mdef}[3]{\EM{\tdef{\SF{#1}(#2)}{#3}}}  %%% method definition name(args) rettype
+\renewcommand{\int}{\EM{\SF{Int}}}              %% integers
+\renewcommand{\any}{\EM{\SF{Any}}}              %% any
+\newcommand{\ty}{\EM{\SF{ty}}}                   %% type
+\newcommand{\aty}{\EM{\SF{A}}}                  %% abstract type
+\newcommand{\tdecl}{\EM{\SF{d}}}                %% type declaration
+\renewcommand{\dyn}{\EM{*}}                     %% dyn
+\newcommand{\call}[2]{\EM{\SF{#1}(#2)}}         %% function call
+\newcommand{\cond}[4]{\EM{\ass{#1}{\v{#2} ~?~ #3 : #4}}}  %%% conditional assignment
+\newcommand{\get}[2]{\EM{\v{#1}[\SF{#2}]}}      %% field read
+\renewcommand{\i}{\EM{\SF{i}}}                  %% integer
+\renewcommand{\j}{\EM{\SF{j}}}                  %% integer
+\renewcommand{\m}{\EM{\SF{m}}}                  %% integer
+\renewcommand{\k}{\EM{\SF{k}}}                  %% integer
+\newcommand{\p}{\EM{\SF{p}}}                    %% primitive
+\renewcommand{\l}{\EM{\SF{l}}}                  %% integer
+\newcommand{\st}{\EM{\SF{st}}}                  %% statement
+\newcommand{\env}{\EM{\SF{E}}}                  %% environment
+\newcommand{\frm}{\EM{\SF{F}}}                  %% frame
+\newcommand{\mtbl}{\EM{\SF{M}}}                 %% method table
+\newcommand{\tytbl}{\EM{\SF{D}}}                %% type declarations table
+\newcommand{\config}[2]{\EM{#1,\, #2}}          %% configuration
+\newcommand{\configd}{\config{\frm}{\mtbl}}   %% default configuration F, M
+\newcommand{\stk}[2]{\EM{#1 \cdot #2}}          %% stack
+\renewcommand{\step}{\EM{~\rightarrow~}}        %% one step of reduction
+\newcommand{\stepmul}{\EM{~\rightarrow^*~}}   %% multiple steps of reduction
+%\newcommand{\stepd}{\EM{~\overset{{\mathcal{D}}}{\rightarrow}~}} %% one step of normal reduction
+%\newcommand{\stepj}{\EM{~\overset{{\SF{jit}}}{\rightarrow}~}} %% one step of reduction with JIT
+\newcommand{\stepd}{\EM{~{\rightarrow_{\mathcal{D}}}~}} %% one step of normal reduction
+\newcommand{\stepj}{\EM{~{\rightarrow_{\SF{JIT}}}~}} %% one step of reduction with JIT
+\newcommand{\stepdmul}{\EM{~{\rightarrow^*_{\mathcal{D}}}~}}
+\newcommand{\stepjmul}{\EM{~{\rightarrow^*_{\SF{JIT}}}~}}
+\newcommand{\idx}[2]{\EM{#1[{\SF{#2}}]}}        %% x[y]
+%\renewcommand{\read}[3]{\EM{\mathit{fieldof}(#1,#2,\SF{#3})}} %%%
+\newcommand{\construct}[2]{\EM{#1(#2)}}   %% allocating an object
+\newcommand{\msig}[2]{\EM{#1!{#2}}}         %% method name with type annotation
+\newcommand{\meth}[3]{\EM{#1!{#2}\,}}
+\newcommand{\direct}[3]{\EM{\msig{#1}{#2}(#3)}}      %% direct call
+\newcommand{\Ty}{\EM{\SF{T}}}                   %% type names
+\newcommand{\last}[1]{\EM{\mathit{last}(#1)}}   %% last element of env
+\renewcommand{\done}{\EM{\epsilon}}
+\newcommand{\jules}{\EM{\SF{Jules}}}
+\renewcommand{\c}[1]{\lstinline{#1}\xspace}
+\newcommand{\VD}{\vdash}
+%\newcommand{\VDnd}{\EM{\vdash^{\cancel{\mathcal{D}}}}}
+\newcommand{\VDnd}{\EM{\vdash^{{\mathcal{D}}}}}
+\newcommand{\VDm}{\vdash_\mtbl}
+\newcommand{\VDo}{\EM{\vdash^{\mathrm{O}}}}
+\renewcommand{\n}{\EM{\SF n}}
+\newcommand{\nn}{\EM{\n+1}}
+\newcommand{\err}{\EM{\SF{\mathbf{err}}}}       %% dispatch error
+\newcommand{\main}{\EM{\SF{main}}}
+\newcommand{\origmtbl}[1]{\EM{\lfloor #1 \rfloor}}
+%% compilation
+%\newcommand{\compst}[7]{\EM{#1\ \VD\ \config{#2}{\config{#3}{#4}}\ \leadsto\
+%  \config{#5}{\config{#6}{#7}}}}
+\newcommand{\compst}[7]{\EM{#1\ \VD\ \config{#2}{#3}\ \leadsto\
+  \config{#5}{#6}}}
+%% maximal devirtualization
+\newcommand{\devirtst}[3]{\EM{#1\ \VDnd_{#2}\ #3}}
+\newcommand{\devirtm}[1]{\EM{\VDnd\ #1}}
+%% valid optimization
+\newcommand{\optvalidst}[3]{\EM{#1\ \VDo_{#2}\ #3}}
+\newcommand{\optvalidmtbl}[1]{\EM{\VDo #1}}
+%% symbol |> for directed equivalence (instance of)
+\newcommand{\eqdirop}{\triangleright}
+%\newcommand{\eqdirop}{\approx}
+% equivalence relation for instructions \ty.. |-_{M|>M'} st |> st'
+\newcommand{\eqst}[5]{\EM{#1\ \vdash_{#2,#3}\ #4\ \eqdirop\ #5}}
+\newcommand{\eqstd}[3]{\eqst{#1}{\mtbl}{\mtbl'}{#2}{#3}}
+% equivalence relation for tables |- M |> M'
+\newcommand{\eqmtbl}[2]{\EM{#1 \eqdirop #2}}
+\newcommand{\eqmtbld}{\eqmtbl{\mtbl}{\mtbl'}}
+% equivalence relation for configurations
+\newcommand{\eqconfig}[2]{\EM{#1\ \eqdirop\ #2}}
+%
+% type inferred statement
+\newcommand{\typeinfst}[3]{\EM{\VD^{\typeinfop}_{#1}\,#2\,<:\,#3}}
+\newcommand{\typeinfstd}[2]{\typeinfst{\mtbl}{#1}{#2}}
+%
+% table, env, sts, tys
+\newcommand{\frmtyped}[4]{\EM{\VD_{#1}\ #2\ #3 <: #4}}
+% table, table', arg tys, sts, opt sts, sts tys
+\newcommand{\optst}[5]{\EM{#3\,\VD_{#1,#2}\, #4\ \eqdirop\ #5}}
+\newcommand{\optstd}[3]{\optst{\mtbl}{\mtbl'}{#1}{#2}{#3}}
+\newcommand{\optframe}[6]{\optst{#1}{#2}{#3}{#4}{#5\,<:\,#6}}
+\newcommand{\optframed}[4]{\optframe{\mtbl}{\mtbl'}{#1}{#2}{#3}{#4}}
+\newcommand{\optconfig}[5]{\EM{\config{#1}{#2}\ \eqdirop\ \config{#3}{#4}\ <:\ #5}}
+%
+\DeclareMathOperator{\typeof}{\mathit{typeof}}
+\DeclareMathOperator{\applicable}{\mathit{applcbl}}
+\DeclareMathOperator{\dispatchop}{{\mathcal D}}
+\DeclareMathOperator{\isconcrete}{\mathit{is-concrete}}
+\DeclareMathOperator{\rettype}{\mathit{rettype}}
+\DeclareMathOperator{\body}{\mathit{body}}
+\DeclareMathOperator{\signature}{\mathit{signtr}}
+\DeclareMathOperator{\origsignature}{\mathit{o-signtr}}
+\DeclareMathOperator{\checkargs}{\mathit{checkargs}}
+\DeclareMathOperator{\typeinfop}{\mathcal{I}}
+\DeclareMathOperator{\jitop}{\mathit{jit}}
+\newcommand{\dispatch}[3]{\EM{\dispatchop(#1,\SF{#2},{#3})}} %% dispatched call
+\newcommand{\typeinf}[3]{\EM{\typeinfop(#1, #2, #3)}} %% type inference
+\newcommand{\typeinfd}[1]{\typeinf{\mtbl}{\Gamma}{#1}} %% type inference
+\newcommand{\jit}[0]{\EM{\jitop}} %% jitting
+\newcommand{\TODO}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+%\newcommand{\TODO}[1]{}
+
+\newtheorem{property}{Property}[section]
+\newtheorem{requirement}{Requirement}[section]
+
+\newcommand{\goodpkgsnum}{760\xspace}
+\newcommand{\juliaversion}{Julia 1.5.4\xspace}
+
+%% PAPER VERSION AND HIGHLIGHTING
+%\usepackage{showframe}  %% for checking margins
+\newcommand{\ExtendedVersion}{0}    %% 1 if yes, 0 if not
+\newcommand{\HightlightChanges}{0}  %% 1 if yes, 0 if not
+
+% For submission, use #1; for extended version, use #2
+\newcommand{\PAPERVERSION}[2]{%1
+\ifnum1=\ExtendedVersion\relax
+\begin{changebar}
+#2%
+\end{changebar}\xspace
+\else
+#1\xspace
+\fi}
+
+\newcommand{\PAPERVERSIONINLINE}[2]{%1
+\ifnum1=\ExtendedVersion\relax
+#2%
+\else
+#1%
+\fi}
+
+\newcommand{\ADD}[1]{%
+\ifnum1=\HightlightChanges\relax
+\cbcolor{green}
+\begin{changebar}
+#1%
+\end{changebar}
+\cbcolor{gray}
+\else
+#1%
+\fi}
+
+\newcommand{\MODIFY}[1]{%
+\ifnum1=\HightlightChanges\relax
+\begin{changebar}
+#1
+\end{changebar}
+\else
+#1
+\fi}
+
+\endinput

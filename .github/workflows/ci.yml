@@ -1,0 +1,22 @@
+name: Build and upload LaTeX document
+on: [push, workflow_dispatch]
+jobs:
+  build_latex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v2
+        with:
+          root_file: main.tex
+
+      - uses: mdallasanta/ssh-scp-deploy@v1.0.4
+        with:
+          local: './main.pdf'
+          remote: '~/.www/proposal.pdf'
+          host: login.ccs.neu.edu
+          user: artem
+          key: ${{secrets.SSH_PRIVATE_KEY}}
+          ssh_options: -o StrictHostKeyChecking=no
+          scp_options: -v
