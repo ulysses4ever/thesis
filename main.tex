@@ -1,22 +1,108 @@
 % !TEX root = ./main.tex
-\documentclass[acmsmall,screen]{acmart}
-% include the 'nonacm' class option for the extended version
+\RequirePackage{silence} % :-\
+\WarningFilter{scrreprt}{Usage of package `titlesec'}
+% \WarningFilter{scrreprt}{Activating an ugly workaround}
+\WarningFilter{titlesec}{Non standard sectioning command detected}
+\documentclass[oneside,openright,titlepage,numbers=noenddot,%1headlines,
+headinclude,footinclude,cleardoublepage=empty,abstract=on,
+BCOR=5mm,paper=a4,fontsize=11pt,
+dvipsnames
+]{scrreprt}
+
+% Core package
+\usepackage[
+  drafting=false,    % print version information on the bottom of the pages
+  tocaligned=false, % the left column of the toc will be aligned (no indentation)
+  dottedtoc=true,  % page numbers in ToC flushed right
+  eulerchapternumbers=true, % use AMS Euler for chapter font (otherwise Palatino)
+  linedheaders=true,       % chaper headers will have line above and beneath
+  floatperchapter=true,     % numbering per chapter for all floats (i.e., Figure 1.1)
+  eulermath=false,  % use awesome Euler fonts for mathematical formulae (only with pdfLaTeX)
+  beramono=true,    % toggle a nice monospaced font (w/ bold)
+  palatino=true,    % deactivate standard font for loading another one, see the last section at the end of this file for suggestions
+  style=arsclassica % classicthesis, arsclassica
+  ]{classicthesis}
+
+
+% ****************************************************************************************************
+%              Personal data
+% ****************************************************************************************************
+\newcommand{\myTitle}{Some Title}
+% \newcommand{\mySubtitle}{Non-Intrusive Migration of R Ecosystem from Lazy to Strict Semantics \xspace}
+\newcommand{\myDegree}{Ph.D.\xspace}
+\newcommand{\myName}{Artem Pelenitsyn\xspace}
+\newcommand{\myProf}{Jan Vitek\xspace}
+\newcommand{\myDepartment}{Khoury College of Computer Sciences\xspace}
+\newcommand{\myUni}{Northeastern University\xspace}
+\newcommand{\myLocation}{Boston, Massachusetts, USA\xspace}
+\newcommand{\myTime}{2022\xspace}
+
+
+% ********************************************************************
+%        Various Convenience Packages
+% ********************************************************************
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{tcolorbox}
+\usepackage{amsmath}
 
 \usepackage{xspace,url,hyperref,doi,wrapfig,stmaryrd, graphicx,xparse,etoolbox}
 \usepackage{caption,subcaption}
-\usepackage{style/julia}
-\usepackage{mathpartir,listings}
 \usepackage[inline]{enumitem}
 \usepackage{cancel}
 \usepackage[xcolor,rightbars]{changebar}
 %\usepackage{showframe}  %% for checking margins
-\newcommand{\code}[1]{{\tt #1}\xspace}
 \input{macros}
 \definecolor{Gray}{gray}{0.9}
 \definecolor{vlightgray}{gray}{0.93}
 
-\newcommand{\HIDEFORLONGVERSION}[1]{}
 
+% ********************************************************************
+%        Bibliography
+% ********************************************************************
+\usepackage[
+  %backend=biber,bibencoding=utf8, %instead of bibtex
+  backend=bibtex8,bibencoding=ascii,%
+  language=auto,%
+  style=numeric-comp,%
+  %style=authoryear-comp, % Author 1999, 2010
+  %bibstyle=authoryear,dashed=false, % dashed: substitute rep. author with ---
+  sorting=nyt, % name, year, title
+  maxbibnames=10, % default: 3, et al.
+  %backref=true,%
+  natbib=true % natbib compatibility mode (\citep and \citet still work)
+]{biblatex}
+\bibliography{bib/jv,bib/all,bib/lj}
+
+
+% ********************************************************************
+% Fine-tune hyperreferences (hyperref should be called last)
+% ********************************************************************
+\hypersetup{%
+  %draft, % hyperref's draft mode, for printing see below
+  colorlinks=true, linktocpage=true, pdfstartpage=3, pdfstartview=FitV,%
+  % uncomment the following line if you want to have black links (e.g., for printing)
+  %colorlinks=false, linktocpage=false, pdfstartpage=3, pdfstartview=FitV, pdfborder={0 0 0},%
+  breaklinks=true, pageanchor=true,%
+  pdfpagemode=UseNone, %
+  % pdfpagemode=UseOutlines,%
+  plainpages=false, bookmarksnumbered, bookmarksopen=true, bookmarksopenlevel=1,%
+  hypertexnames=true, pdfhighlight=/O,%nesting=true,%frenchlinks,%
+  urlcolor=CTurl, linkcolor=CTlink, citecolor=CTcitation, %pagecolor=RoyalBlue,%
+  %urlcolor=Black, linkcolor=Black, citecolor=Black, %pagecolor=Black,%
+  pdftitle={\myTitle},%
+  pdfauthor={\myName},%
+  pdfsubject={Non-Intrusive Migration of R Ecosystem from Lazy to Strict Semantics},%
+  pdfkeywords={R Language; Delayed or Lazy Evaluation, Software Migration},%
+  pdfcreator={pdfLaTeX},%
+  pdfproducer={LaTeX with hyperref and classicthesis}%
+}
+
+% ****************************************************************************************************
+%               Setup code listings
+% ****************************************************************************************************
+\usepackage{style/julia}
+\usepackage{mathpartir,listings}
 \lstdefinelanguage{Jules}{
   keywords={struct,is,end},
   keywordstyle=\color{darkgray}\bfseries,
@@ -36,81 +122,80 @@
   numbersep=9pt,  tabsize=2, breaklines=true,  showtabs=false, captionpos=b
 }
 
-\setcopyright{rightsretained}
-\citestyle{acmauthoryear}
-\acmPrice{}
-\acmDOI{10.1145/3485527}
-\acmYear{2021}
-\copyrightyear{2021}
-\acmSubmissionID{oopsla21main-p237-p}
-\acmJournal{PACMPL}
-\acmVolume{5}
-\acmNumber{OOPSLA}
-\acmArticle{150}
-\acmMonth{10}
-
-\begin{document}
-
-\begin{CCSXML}
-<ccs2012>
-<concept>
-<concept_id>10011007.10011006.10011041.10011044</concept_id>
-<concept_desc>Software and its engineering~Just-in-time compilers</concept_desc>
-<concept_significance>500</concept_significance>
-</concept>
-<concept>
-<concept_id>10011007.10011006.10011039.10011311</concept_id>
-<concept_desc>Software and its engineering~Semantics</concept_desc>
-<concept_significance>300</concept_significance>
-</concept>
-</ccs2012>
-\end{CCSXML}
-
-\ccsdesc[500]{Software and its engineering~Just-in-time compilers}
-\ccsdesc[300]{Software and its engineering~Semantics}
-
+\newcommand{\code}[1]{{\tt #1}\xspace}
 \renewcommand{\c}[1]{\lstinline[language=Julia]!#1!\xspace}
 
-\title{Type Stability in Julia\PAPERVERSIONINLINE{}{\ (Extended Version)}}
-\subtitle{Avoiding Performance Pathologies in JIT Compilation}
+% ****************************************************************************************************
+%              Control macros
+% ****************************************************************************************************
+\newcommand{\HIDEFORLONGVERSION}[1]{}
 
-\author{Artem Pelenitsyn}\affiliation{\institution{Northeastern University}\country{USA} }
-\email{pelenitsyn.a@northeastern.edu}
-\author{Julia Belyakova}\affiliation{\institution{Northeastern University}\country{USA} }
-\author{Benjamin Chung}\affiliation{\institution{Northeastern University}\country{USA} }
-\author{Ross Tate}\affiliation{\institution{Cornell University}\country{USA} }
-\author{Jan Vitek}\affiliation{\institution{Northeastern University}\country{USA}}
-\affiliation{\institution{Czech Technical University in Prague}\country{Czech Republic}}
+% ****************************************************************************************************
+%              Begin Document
+% ****************************************************************************************************
+\begin{document}
 
 
-\renewcommand{\shorttitle}{Type Stability in Julia: Avoiding Performance
-  Pathologies in JIT Compilation}
-\keywords{method dispatch, type inference, compilation, dynamic languages}
+\pagenumbering{roman}
+\pagestyle{plain}
 
-\begin{abstract}
-  As a scientific programming language, Julia strives for performance but also
-  provides high-level productivity features. To avoid performance pathologies,
-  Julia users are expected to adhere to a coding discipline that enables
-  so-called type stability. Informally, a function is type stable if the type of
-  the output depends only on the types of the inputs, not their values.
-%
-  This paper provides a formal definition of type stability as well as a
-  stronger property of type groundedness, shows that groundedness enables
-  compiler optimizations, and proves the compiler correct. We also perform a
-  corpus analysis to uncover how these type-related properties manifest in
-  practice.
-\end{abstract}
-%
-\maketitle
+% ****************************************************************************************************
+%              Title (uncomment if curious)
+% ****************************************************************************************************
+% \input{title}
 
-\PAPERVERSION{}{\emph{A note on Extended Version. This extended version
-    of~\cite{Pelenitsyn21} contains full proofs of the theorems in
-    \secref{sec:jules} and an appendix with graphs, as described in
-    \secref{sec:empirical}. Most notable extension blocks (usually, the proofs)
-    are marked with a vertical bar on the right margin, like
-    this paragraph.}}
+% \chapter*{abstract}
+%   As a scientific programming language, Julia strives for performance but also
+%   provides high-level productivity features. To avoid performance pathologies,
+%   Julia users are expected to adhere to a coding discipline that enables
+%   so-called type stability. Informally, a function is type stable if the type of
+%   the output depends only on the types of the inputs, not their values.
 
-\section{Introduction}
+%   This paper provides a formal definition of type stability as well as a
+%   stronger property of type groundedness, shows that groundedness enables
+%   compiler optimizations, and proves the compiler correct. We also perform a
+%   corpus analysis to uncover how these type-related properties manifest in
+%   practice.
+
+% \maketitle
+
+%*******************************************************
+% Table of Contents (uncomment \tableofcontents)
+%*******************************************************
+\pagestyle{scrheadings}
+%\phantomsection
+\pdfbookmark[1]{\contentsname}{tableofcontents}
+\setcounter{tocdepth}{2} % <-- 2 includes up to subsections in the ToC
+\setcounter{secnumdepth}{3} % <-- 3 numbers up to subsubsections
+\manualmark
+\markboth{\spacedlowsmallcaps{\contentsname}}{\spacedlowsmallcaps{\contentsname}}
+% \tableofcontents
+\automark[section]{chapter}
+\renewcommand{\chaptermark}[1]{\markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}}
+\renewcommand{\chaptermark}[1]{\markright{\textsc{\thesection}\enspace\spacedlowsmallcaps{#1}}}
+
+%********************************************************************
+% Mainmatter
+%*******************************************************
+\cleardoublepage
+\pagestyle{scrheadings}
+\pagenumbering{arabic}
+%\setcounter{page}{90}
+% use \cleardoublepage here to avoid problems with pdfbookmark
+\cleardoublepage
+
+\chapter{Background}%
+\label{chap-bg}
+
+\chapter{Contributions}%
+\label{chap-contrib}
+
+\chapter{Proposed Work}%
+\label{chap-proposed}
+
+\end{document}
+
+\endinput{}
 
 Performance is serious business for a scientific programming language. Success
 in that niche hinges on the availability of a rich ecosystem of high-performance
@@ -191,7 +276,7 @@ The paper is accompanied by the artifact~\cite{artifact} reproducing results
 of~\secref{sec:empirical}.
 
 
-\section{Julia in a Nutshell}
+\chapter{Julia in a Nutshell}
 
 The Julia language is designed around multiple dispatch~\cite{BezansonEKS17}.
 Programs consist of \emph{functions} that are implemented by multiple
@@ -224,7 +309,6 @@ dynamically using multiple dispatch.}
 ...
 \end{lstlisting}
 \caption{Methods from the standard library}\label{plus}
-\Description{First 8 out of 184 methods for the plus function in the Julia standard library.}
 \end{figure}
 
 Julia supports a rich type language for defining method
@@ -270,7 +354,7 @@ the type inferencer losing precision due to a branching statement. A more
 detailed description of the compilation strategy and its performance is given in
 \cite{oopsla18a}.}
 
-\section{Type Stability: a Key to Performance?}\label{sec:stability}
+\chapter{Type Stability: a Key to Performance?}\label{sec:stability}
 
 Designing performant Julia code is best understood as a conversation between the
 language designers, compiler writers, and the developers of widely used
@@ -359,13 +443,6 @@ Bodya@::Union{Int64, String}a@
   values of different types leads to longer execution
   because of the \c{Union} type of \c{id(..)}, which propagates to \c{pisum} (b).}}
 \label{ide}
-\Description{Analyzing a redacted version of the pisum() Julia benchmark with
-  the built-in code_warntype macro, we spot type instability. Indeed, the
-  redaction amounted to insertion of an id function that does not change
-  semantics but makes Julia believe that id and, in turn, pisum have
-  instability. Our id function pretends that it can return something completely
-  random of the string type in a very unlikely case when the rand function
-  returns 4.2.}
 \end{figure}
 
 When a performance regression occurs, it is common for developers to study the
@@ -408,7 +485,7 @@ the same broad idea, but describe varying properties. The canonical definition
 from the Julia documentation describes type stability as
 
 \begin{quote}
-  \it ``[...] the type of the output is predictable from the types of the
+  \itshape``[...] the type of the output is predictable from the types of the
   inputs. In particular, it means that the type of the output cannot vary
   depending on the values of the inputs.''
 \end{quote}
@@ -517,7 +594,6 @@ end
 \end{lstlisting}\end{minipage}
 \caption{\MODIFY{Flavors of stability: \c{f0} is unstable,
 \c{f1} is stable; \c{f2} is stable if \c{(-)} is stable; \c{(-)} is unstable.}}\label{fla}
-\Description{Several simple variants of a type-(un)stable function.}
 \end{figure}
 
 The example of function \c{f2} illustrates the fact that stability is a
@@ -579,7 +655,7 @@ return the same concrete type, e.g. an S-expression-style struct. Then, \c{run}
 has to be written without multiple dispatch, as a big if-expression, which may
 be undesirable.
 
-\section{Jules: Formalizing Stability and Groundedness}\label{sec:jules}
+\chapter{Jules: Formalizing Stability and Groundedness}\label{sec:jules}
 
 \MODIFY{
 To simplify reasoning about type stability and groundedness, we first
@@ -600,8 +676,6 @@ and uses it as a black box.
 \begin{figure}[!h]
   \includegraphics[width=1.1\columnwidth]{figs/compile.pdf}
   \caption{Compilation from Julia to \jules}\label{comp}
-  \Description{Julia source code translated to Jules; one function is further compiled
-    to a specialized version.}
 \end{figure}
 
 Fig.~\ref{comp} illustrates the relationship between Julia source code, the
@@ -646,7 +720,7 @@ so-called world-age mechanism~\cite{oopsla20a} which restricts the effect
 of \c{eval}, source methods are fixed from the
 perspective of compilation; only compiled instances changes.
 
-\subsection{Syntax}
+\section{Syntax}
 
 The syntax of \jules methods is defined in~\figref{syntax}. We use two key
 notational devices. First, sequences are denoted \ol{\,\cdot\,}; thus, \ol\ty
@@ -682,7 +756,6 @@ method name and \ol\ty denotes argument types.
 \multicolumn{3}{l}{$i \in \mathbb{N},\ \p \in \mathbb{Z}$} & \\
 \end{tabular}
 \end{tabular}\caption{Syntax of \jules}\label{syntax}
-\Description{Syntax of Jules}
 \end{figure}
 
 Types \ty live in the immutable type table \tytbl, which contains both concrete
@@ -725,7 +798,7 @@ the result is the value of register \v\l. Conditional calls can be trivially
 transformed into unconditional calls; in examples, this transformation is
 performed implicitly.
 
-\subsection{Dynamic Semantics}
+\section{Dynamic Semantics}
 
 \jules is parameterized over three components: method dispatch $\mathcal D$,
 type inference $\mathcal I$, and just-in-time compilation \jit. We do not
@@ -832,10 +905,9 @@ $\mathcal D$ is used in operational semantics.
 }
 \end{mathpar}
 \caption{Dynamic semantics of Jules}\label{sems}
-\Description{Dynamic semantics of Jules}
 \end{figure}
 
-\subsubsection{Operational Semantics}\label{sec:opsem}
+\subsection{Operational Semantics}\label{sec:opsem}
 
 Fig.~\ref{sems} gives rules for the dynamic semantics. Given a type table \tytbl
 as context, \jules can step a configuration $\config{\frm}{\mtbl}$ to
@@ -900,7 +972,7 @@ corresponds to a dynamic-dispatch error in Julia. A configuration is
  \emph{wrong}.
 \end{definition}
 
-\subsubsection{Dispatch}\label{sec:disp}
+\subsection{Dispatch}\label{sec:disp}
 
 \jules is parametric over method dispatch: any mechanism $\mathcal D$ that
 satisfies the \emph{Dispatch Contract} (\defref{disprel}) can be used. Julia's
@@ -933,7 +1005,7 @@ definition. As in Julia, dispatch is only defined for tuples of concrete types.
   \label{disprel}
 \end{definition}
 
-\subsubsection{Inference}\label{sec:infer}
+\subsection{Inference}\label{sec:infer}
 
 The Julia compiler infers types of variables by forward data-flow analysis. Like
 dispatch, inference is complex, so we parameterize over it. For our purposes, an
@@ -996,7 +1068,7 @@ translating a dynamically dispatched call into a direct call may be unsound.
   \]
 \end{requirement}
 
-\subsubsection{Well-Formedness}\label{wellform}
+\subsection{Well-Formedness}\label{wellform}
 
 Initial \jules configuration \config{\emp\ \main()}{\mtbl} is well-formed
 if the method table \mtbl is well-formed according to \defref{ref:def-well-formed}.
@@ -1086,15 +1158,12 @@ Thus, program behavior would be modified by compilation, which is undesired.
 }
 \end{mathpar}
 
-  \caption{\MODIFY{Compilation: extending method table with a specialized method
+\caption{\MODIFY{Compilation: extending method table with a specialized method
   instance (top rule) and replacing a~dynamically dispatched call with
   a direct method invocation in the extended table (bottom-right)}}\label{compile}
-\Description{Compilation: extending method table with a specialized method
-  instance and replacing a~dynamically dispatched call with
-  a direct method invocation in the extended table}
 \end{figure}
 
-\subsubsection{Compilation}\label{sec:comp}
+\subsection{Compilation}\label{sec:comp}
 
 \jules implements devirtualization through the $\jit(\mtbl,\m,\ol\Ty)$
 operation, shown in \figref{compile}. The compiler specializes methods according to the
@@ -1121,7 +1190,7 @@ new types are not added during compilation, it terminates. Note that if
 the original method has concrete argument types, the compiler does nothing.
 
 
-\subsection{Type Groundedness and Stability}\label{sec:stability-formal}
+\section{Type Groundedness and Stability}\label{sec:stability-formal}
 %%------------------------------
 
 We now formally define the properties of interest, type stability and type
@@ -1160,7 +1229,7 @@ originals.
 \end{definition}
 
 
-\subsubsection{Full Devirtualization}\label{sec:ground-inst-prop}
+\subsection{Full Devirtualization}\label{sec:ground-inst-prop}
 
 The key property of type groundedness is that
 compiling a type-grounded method results in a fully devirtualized instance.
@@ -1228,8 +1297,6 @@ the results of type inference.
 \end{mathpar}
 \caption{\MODIFY{Maximal devirtualization of instructions
   and method tables}}\label{fig:max-devirt}
-\Description{Maximal devirtualization of instructions
-  and method tables}
 \end{figure}
 
 
@@ -1321,7 +1388,6 @@ and full devirtualization.
 }
 \end{mathpar}
 \caption{Reformulated compilation}\label{fig:compile-wd}
-\Description{Reformulated compilation}
 \end{figure}
 
 The final step is to show that compilation defined in \figref{compile} preserves
@@ -1542,7 +1608,7 @@ and thus do not contain dispatched calls.
 
 }
 
-\subsubsection{Relationship between Stability and Groundedness}\label{sec:stable}
+\subsection{Relationship between Stability and Groundedness}\label{sec:stable}
 
 \MODIFY{
 While it is type groundedness that enables devirtualization,
@@ -1669,7 +1735,7 @@ of the calling instruction.
 }
 }
 
-\subsection{Correctness of Compilation}\label{sec:jit-correct}
+\section{Correctness of Compilation}\label{sec:jit-correct}
 
 \ADD{
 In this section, we prove that evaluating a program with just-in-time
@@ -1798,10 +1864,8 @@ ahead-of-time compilation strategy.
 }
 \end{mathpar}
 \caption{Optimization relation for instructions, method tables,
-  stacks, and configurations}
+  stacks, and configurations}%
 \label{fig:opt-config}
-\Description{Optimization relation for instructions, method tables,
-  stacks, and configurations}
 \end{figure}
 
 \ADD{
@@ -2546,7 +2610,7 @@ $  \optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
 
 }
 
-\section{Empirical Study}\label{sec:empirical}
+\chapter{Empirical Study}\label{sec:empirical}
 
 Anecdotal evidence suggests that type stability is discussed in the
 Julia community, but does Julia code exhibit the properties of stability
@@ -2565,7 +2629,7 @@ The main questions of this empirical study are:
   they influence how type-stable code looks?
 \end{enumerate}
 
-\subsection{Methodology}
+\section{Methodology}
 
 We take as our main corpus the 1000 most starred (using GitHub stars) packages
 from the Julia package registry; as of the beginning of 2021, the registry
@@ -2619,7 +2683,7 @@ Std. Dev. & 22\%                       & 24\%                         \\ \bottom
 \end{tabular}
 \end{table}
 
-\subsection{Package-Level Analysis}
+\section{Package-Level Analysis}
 
 The aggregate results of the dynamic analysis for the \goodpkgsnum packages are
 shown in Table~\ref{empirical:fig:all}: 74\% of method instances in a package
@@ -2693,7 +2757,7 @@ stability rates, 82\% (Gadfly) and 99\% (Genie), with groundedness being high in
 Genie, 93\%, and low in Gadfly, 38\%. Again, no general conclusion about the
 relationship between varargs methods and their stability can be made.
 
-\subsection{Method-Level Analysis}
+\section{Method-Level Analysis}
 
 \MODIFY{
 In this section, we inspect stability of individual methods in its possible
@@ -2704,8 +2768,7 @@ showing the number of methods with particular values of properties, and second,
 we manually sample some of the methods with more extreme characteristics.
 }
 
-\subsubsection{Graphical Analysis}
-\label{sssect:graphs}
+\subsection{Graphical Analysis}\label{sssect:graphs}
 
 We use two-dimensional histograms like those presented in
 Fig.~\ref{figs:size:Pluto:main} to discover possible relationships between stability
@@ -2729,7 +2792,6 @@ Fig.~\ref{figs:size:Pluto:main}, the lonely yellow areas indicate that there are
        \includegraphics[width=\textwidth]{figs/Pluto-size-vs-grounded.pdf}
      \end{subfigure}
 \caption{Stability (left, OY axis) and groundedness (right, OY) by method size (OX) in Pluto}%
-\Description{Stability and groundedness by method size in Pluto}%
 \label{figs:size:Pluto:main}
 \end{figure}
 
@@ -2786,7 +2848,7 @@ plots. Recall (Tables \ref{empirical:fig:all} and \ref{empirical:fig:top}) that
 Gen's groundedness is 14\% less than the average on the whole corpus of
 \goodpkgsnum packages.
 
-\subsubsection{Manual Inspection}
+\subsection{Manual Inspection}
 
 \ADD{
 To better understand the space of stable methods,
@@ -2897,7 +2959,7 @@ get_trace_type(::GenerativeFunction{T,U}) where {T,U} = U
 
 \end{itemize}
 
-\subsection{Takeaways}
+\section{Takeaways}
 
 Our analysis shows that a Julia user can expect mostly stable (74\%) and
 somewhat grounded (57\%) code in widely used Julia packages. If the authors
@@ -2919,7 +2981,7 @@ by package developers to study type instability in their code, as well as check
 for regressions.
 
 
-\section{Related Work}
+\chapter{Related Work}
 
 Type stability and groundedness are the consequences of Julia's compilation
 strategy put into practice. The approach Julia takes is new and simpler than
@@ -2971,7 +3033,7 @@ to achieve high performance with a simple compiler.
 
 }
 
-\section{Conclusion}
+\chapter{Conclusion}
 
 \MODIFY{
 Julia's performance is impressive, as it improves on that of a statically typed
@@ -3023,54 +3085,3 @@ can be just as important as the cleverness of the compiler itself. Performance
 is not an isolated property: it is the result of a dialogue between the compiler
 and the programmers that use it.
 
-\section*{Data Availability Statement}
-The paper is accompanied by the artifact~\cite{artifact} reproducing the results
-of~\secref{sec:empirical}. In particular, the artifact contains the list of
-1000 Julia packages analyzed (with the exact package versions), as well as Bash and
-Julia scripts performing stability analysis and generating
-Tables~\ref{empirical:fig:all} and \ref{empirical:fig:top}, and
-Fig.~\ref{figs:size:Pluto:main}.
-
-\section*{Acknowledgments}
-
-We thank Ming-Ho Yee and the anonymous reviewers for their insightful comments
-and suggestions to improve this paper.
-
-This work was supported by Office of Naval Research (ONR) award 503353, the
-National Science Foundation awards 1759736, 1925644, 1618732, CCF-1909143 and
-CCF-1908389 the Czech Ministry of Education from the Czech Operational Programme
-Research, Development, and Education, under grant agreement No.
-CZ.02.1.01/0.0/0.0/15\_003/0000421, and the European Research Council under the
-European Union’s Horizon 2020 research and innovation programme, under grant
-agreement No. 695412.
-
-\bibliographystyle{ACM-Reference-Format}{}
-\bibliography{bib/jv,bib/all,bib/lj}
-
-\PAPERVERSION{}{
-\appendix
-
-\section{Graphs for \secref{sec:empirical}}\label{sec:app}
-
-This appendix contains graphs similar to the ones described in
-\secref{sssect:graphs} for all 10 packages discussed in \secref{sec:empirical}.
-There are 6 graphs per package: the top two show the relationship between the
-method size and stability (left) or groundedness (right); the other four graphs
-connect the two type-related properties with control-flow features: the number
-of gotos and the number of returns in a method instance.
-
-Note that the bottom four graphs for every package are different from the top
-two in that they group method instances, not methods. Therefore,
-the bottom four graphs have all data bins either at level $OY=0$ or $1$, because
-we always know whether a method instance is stable (grounded) or not.
-The change comes from the fact that the control-flow features in question
-depend on compiled code and the way it was optimized: e.\;g., an \c{if true} in a
-method can be optimized away during compilation.
-
-\clearpage
-
-\input{figs/all-package-graphs.tex}
-}
-
-\end{document}
-\endinput{}

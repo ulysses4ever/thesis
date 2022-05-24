@@ -1,9 +1,7 @@
-all:
-	pdflatex main
-	bibtex main
+all: artem
 
 clean:
-	rm *.log *.aux *.bbl *.blg *~
+	rm -rf *.log *.aux *.bbl *.blg *~
 
 artem:
 	latexmk -pdf main.tex
