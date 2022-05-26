@@ -261,7 +261,7 @@ stems from the compiler's success in determining the \emph{concrete} return
 type of any function call it encounters. The intuition is that in such cases,
 the compiler is able to propagate precise type information as it traverses the
 code, which, in turn, is crucial for unboxing and devirtualization.
-More precisely, Julia makes an important distinction between 
+More precisely, Julia makes an important distinction between
 concrete and abstract types: a concrete type such as \c{Int64}, is final
 in the sense that the compiler knows the size and exact layout of
 values of that type; for values of abstract types such as \c{Number}, the compiler has
@@ -1091,7 +1091,7 @@ translating a dynamically dispatched call into a direct call may be unsound.
   \[
     \forall\, \ol{\ty''}.\quad \ol{\ty''} <: \ol{\ty}
     \quad \implies \quad
-    \exists \ol{\ty'''}.\ \ 
+    \exists \ol{\ty'''}.\ \
     \typeinf\mtbl{\ol{\ty''}}{\ol\st} = \ol{\ty'''} \ \ \land\ \
     \ol{\ty'''} <: \ol{\ty'}.
   \]
@@ -1316,7 +1316,7 @@ the results of type inference.
 %
 \inferrule[D-Table]{
   \forall \langle \meth\m{\ol\Ty}{}\ol{\st'},\ol{\ty} \rangle \in \mtbl. \ \ \
-  \ol\Ty \neq \ol\ty \ \land\ \ol{\st'} \neq \done \ \ \ \implies \ \ \ 
+  \ol\Ty \neq \ol\ty \ \land\ \ol{\st'} \neq \done \ \ \ \implies \ \ \
   \meth\m{\ol\ty}{}\ol{\st} \in \mtbl \ \ \land \ \
   \ol{\ty'} = \typeinf{\origmtbl{\mtbl}}{\ol\Ty}{\ol\st} \ \ \land \ \
   \devirtst{\ol\Ty\,\ol{\ty'}}{\mtbl}{\ol{\st'}}
@@ -1670,7 +1670,7 @@ the value of argument \c{x}, \c{f(x)} and \c{g(x)} need to be type-stable.
 
 %In a grounded method, \emph{reachable} callees
 %do not need to be grounded, but they must be stable for the argument types
-%they are called with. 
+%they are called with.
 % If a callee is unstable for the argument types,
 % i.e. has an abstract return type,
 % its result cannot be stored in a concretely typed register,
@@ -2686,7 +2686,7 @@ similarly to the \jules model. In rare cases, type inference may fail;
 on our corpus, this almost never happened, with at most 5 failures per package.
 With the inference results at hand, we check the concreteness of the register
 typing and record a yes/no answer for both stability and groundedness. In
-addition to that, several metrics are recorded for each method: 
+addition to that, several metrics are recorded for each method:
 method size, the number of gotos and returns in the body, whether the method has
 varargs or \c{@nospecialize} arguments\footnote{\texttt{@nospecialize} tells the
 compiler to \emph{not} specialize for that argument and leave it abstract.}, and
@@ -2975,7 +2975,7 @@ end
   Type computations---an unusually wide category for a dynamically typed
   language. Thus, for instance, the Gen package defines a type that represents generative
   functions in probabilistic programming, and a function that extracts the
-  return and argument types: 
+  return and argument types:
 }
 \begin{lstlisting}[language=julia]
 # Abstract type for a generative function with return value type T and trace type U.
@@ -3001,7 +3001,7 @@ Large methods, especially ones with heavy control flow,
 tend to not be type grounded but often are stable; in particular,
 if they always return the same concrete type.
 Finally, although highly polymorphic methods are neither stable nor unstable
-in general, code written in the style of parametric polymorphism 
+in general, code written in the style of parametric polymorphism
 often suggests type stability.
 
 Our dynamic analysis and visualization code is written in Julia (and some bash
@@ -3113,4 +3113,3 @@ Julia's performance model: namely, that the interface exposed by a compiler
 can be just as important as the cleverness of the compiler itself. Performance
 is not an isolated property: it is the result of a dialogue between the compiler
 and the programmers that use it.
-
