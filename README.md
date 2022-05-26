@@ -1,6 +1,8 @@
 ## Thesis Proposal
 
-* Link to the current version
+* [Link to the current version](https://ccs.neu.edu/~artem/proposal.pdf)
+
+* [Overleaf](https://www.overleaf.com/2132545451cnjbvdcspnyp)
 
 ### Meeting 2022-05-25
 
