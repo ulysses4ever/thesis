@@ -35,7 +35,7 @@ dvipsnames
 \newcommand{\myProf}{Jan Vitek\xspace}
 \newcommand{\myDepartment}{Khoury College of Computer Sciences\xspace}
 \newcommand{\myUni}{Northeastern University\xspace}
-\newcommand{\myLocation}{Boston, Massachusetts, USA\xspace}
+\newcommand{\myLocation}{Boston, USA\xspace}
 \newcommand{\myTime}{2022\xspace}
 
 
@@ -190,7 +190,7 @@ dvipsnames
 %              Chap. 1: Intro
 % ****************************************************************************************
 
-\chapter{intro}%
+\chapter{Introduction}%
 \label{chap-intro}
 
 \section{Julia Background}%
@@ -274,18 +274,6 @@ detailed description of the compilation strategy and its performance is given in
 
 \section{Type Stability: a Key to Performance?}\label{sec:stability}
 
-Designing performant Julia code is best understood as a conversation between the
-language designers, compiler writers, and the developers of widely used
-packages. The designers engineered Julia so that it is possible to achieve
-performance with a moderately optimizing just-in-time (JIT) compiler
-and with disciplined use of the abstractions included in the language~\cite{oopsla18a}.
-For example, limiting the reach of \c{eval} by default~\cite{oopsla20a} allows
-for a simpler compiler implementation,
-and constraining struct types to be final enables unboxing.
-The compiler's work is split between high-level optimizations, mainly
-devirtualization and unboxing, and low-level optimizations that are off-loaded
-to LLVM.\@ This split is necessary as LLVM on its own does not have enough
-information to optimize multiple dispatch.
 Removing dispatch is the key to performance, but to perform the optimization,
 the compiler needs precise type information. Thus, while developers
 are encouraged to write generic code, the code also needs to be conducive
@@ -293,8 +281,7 @@ to type inference and type-based optimizations. In this section,
 we give an overview of the appropriate coding discipline, and explain
 how it enables optimizations.
 
-
-\paragraph{Performance.} To illustrate performance implications of careless
+To illustrate performance implications of careless
 coding practices, consider Fig.~\ref{ide}, which displays a method for one of
 the Julia microbenchmarks, \c{pisum}. For the purposes of this example, we
 have added an identity function \c{id} which was initially implemented to
@@ -443,7 +430,7 @@ define and refer to them using two distinct terms:
   \item \emph{type groundedness} is when every variable's type depends
     only on the argument types.
 \end{itemize}
-\MODIFY{Although type stability is strictly weaker than type groundedness,
+Although type stability is strictly weaker than type groundedness,
 for the purposes of this paper, we are interested in both properties.
 The latter, type groundedness, is useful for performance of the function itself,
 as it implies that unboxing, devirtualization, and inlining can occur.
@@ -452,7 +439,7 @@ by other functions: namely, type-grounded functions may call a function that
 is only type stable but not grounded.
 For brevity, when the context is clear, we will refer to type stability and
 type groundedness as stability and groundedness in what follows.
-}
+
 
 
 % ****************************************************************************************
