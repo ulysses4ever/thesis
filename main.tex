@@ -251,7 +251,6 @@ method exists, an error is produced. As an example, consider the above
 definition of \c{+}: a call with two \c{BigFloat}'s dispatches to
 definition 8 from \figref{plus}.
 
-\MODIFY{
 Function calls are pervasive in Julia, and their efficiency is crucial for
 performance. However, the many complex type-level operations involved in dispatch
 make the process slow. Moreover, the language implementation, as of this writing,
@@ -270,16 +269,18 @@ prior example of \c{x+y}: if \c{y} is known to be one of \c{BigFloat} or
 various reasons, for example, accessing a struct field of an abstract type, or
 the type inferencer losing precision due to a branching statement. A more
 detailed description of the compilation strategy and its performance is given in
-\cite{oopsla18a}.}
+\cite{oopsla18a}.
 
-\section{Type Stability: a Key to Performance?}\label{sec:stability}
+\section{Type Stability: a Key to Performance?}%
+\label{sec:stability}
 
 Removing dispatch is the key to performance, but to perform the optimization,
 the compiler needs precise type information. Thus, while developers
 are encouraged to write generic code, the code also needs to be conducive
-to type inference and type-based optimizations. In this section,
-we give an overview of the appropriate coding discipline, and explain
-how it enables optimizations.
+to type inference and type-based optimizations.
+% In this section,
+% we give an overview of the appropriate coding discipline, and explain
+% how it enables optimizations.
 
 To illustrate performance implications of careless
 coding practices, consider Fig.~\ref{ide}, which displays a method for one of
@@ -384,75 +385,37 @@ leverage them to produce more efficient code and infer more precise return types
 In Julia parlance, a method is called \emph{type stable} if its inferred
 return type depends solely on the types of its arguments; in the
 example, \c{id} is not type stable, as its return type may change depending on
-the input value (in principle). The definition of type stability, though, is somewhat slippery.
-The community has multiple, subtly different, informal definitions that capture
-the same broad idea, but describe varying properties. The canonical definition
-from the Julia documentation describes type stability as
+the input value (in principle).
 
-\begin{quote}
-  \itshape``[...] the type of the output is predictable from the types of the
-  inputs. In particular, it means that the type of the output cannot vary
-  depending on the values of the inputs.''
-\end{quote}
-However, elsewhere, the documentation also states that \emph{``An analogous
-type-stability problem exists for variables used repeatedly within a
-function:''}
-\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
-function foo()
-    x = 1
-    for i = 1:10
-        x /= rand()
-    end
-    x
-end
-\end{lstlisting}
-This function will always return a \c{Float64}, which is the type of \c{x}
-at the end of the \c{foo} definition, regardless of the (nonexistent)
-inputs. However, the manual says that it is a type stability issue nonetheless.
-This is because the variable \c{x} is initialized to an \c{Int64} but then
-assigned a \c{Float64} in the loop. Some versions of the compiler boxed \c{x} as
-it could hold two different types; of course, in this example, one level of loop
-unrolling would alleviate the performance issue, but in general,
-imprecise types limit compiler optimizations.
-Conveniently, the \c{code_warntype} macro mentioned above
-will highlight imprecise types for \emph{all} intermediate variables.
-Furthermore, the documentation states that
-\begin{quote}
-  \itshape ``[t]his serves as a warning of potential type instability.''
-\end{quote}
-
-Effectively, there are two competing, type-related properties
-of function bodies. To address this confusion, we
-define and refer to them using two distinct terms:
-\begin{itemize}
-  \item \emph{type stability} is when a function's return type depends only on
-    its argument types, and
-  \item \emph{type groundedness} is when every variable's type depends
-    only on the argument types.
-\end{itemize}
-Although type stability is strictly weaker than type groundedness,
-for the purposes of this paper, we are interested in both properties.
-The latter, type groundedness, is useful for performance of the function itself,
-as it implies that unboxing, devirtualization, and inlining can occur.
-The former, type stability, allows the function to be used efficiently
-by other functions: namely, type-grounded functions may call a function that
-is only type stable but not grounded.
-For brevity, when the context is clear, we will refer to type stability and
-type groundedness as stability and groundedness in what follows.
+% My favorite example. Replace the above @code_warntype stuff with it and
+% hand-wavy explanation of?
+% \begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
+% function foo()
+%     x = 1
+%     for i = 1:10
+%         x /= rand()
+%     end
+%     x
+% end
+% \end{lstlisting}
+% This function will always return a \c{Float64}, which is the type of \c{x}
+% at the end of the \c{foo} definition, regardless of the (nonexistent)
+% inputs. However, the manual says that it is a type stability issue nonetheless.
+% This is because the variable \c{x} is initialized to an \c{Int64} but then
+% assigned a \c{Float64} in the loop. Some versions of the compiler boxed \c{x} as
+% it could hold two different types; of course, in this example, one level of loop
+% unrolling would alleviate the performance issue, but in general,
+% imprecise types limit compiler optimizations.
+% Conveniently, the \c{code_warntype} macro mentioned above
+% will highlight imprecise types for \emph{all} intermediate variables.
 
 
+\section{Related Work}%
+\label{sec-related}
 
-% ****************************************************************************************
-%              Chap. 2: Related Work
-% ****************************************************************************************
-
-
-\chapter{Related Work}%
-\label{chap-related}
-
-Type stability and groundedness are the consequences of Julia's compilation
-strategy put into practice. The approach Julia takes is new and simpler than
-other approaches to efficient compilation of dynamic code.
+Type stability is a consequence of Julia's compilation strategy put into
+practice. The approach Julia takes is new and simpler than other approaches to
+efficient compilation of dynamic code.
 
 Attempts to efficiently compile dynamically dispatched languages go back nearly
 as far as dynamically dispatched languages themselves.
