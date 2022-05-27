@@ -462,19 +462,41 @@ to achieve high performance with a simple compiler.
 
 
 % ****************************************************************************************
-%              Chap. 3: Thesis Statement
+%              Chap. 3: Research Problem
 % ****************************************************************************************
 
 
-\chapter{Thesis Statement}%
-\label{chap-th}
+\chapter{Research Problem}
+\label{chap-problem}
+
+Optimizing dynamic languages is hard, and remains an active research field.
+Several state of the art JIT compilers do a good job but at the expense of being
+opaque and unpredictable for the user.
+Julia's unique design seemingly proposes a better approach based on the notion
+of type stability. My thesis is, therefore:
 
 \begin{quote}\itshape
-Type Stability
+Type stability
 is a widely used program property that can be leveraged by a compiler to generate
 correct and efficient code
 and can be approximated by automated techniques.
 \end{quote}
+
+To validate this thesis I am going to work on the following sub-problems:
+\begin{enumerate}
+
+  \item
+  Assess how widely type-stable code is deployed inside Julia's ecosystem, and
+  whether any code patterns are associated with stable code.
+
+  \item
+  Establish a formal correspondence between type stability and code optimizations and
+  show that optimized code functionally equivalent to the initial version.
+
+  \item
+  Design an approach for approximating type stability without running the code and
+  build a tool that shows that this approximation is viable in practice.
+\end{enumerate}
 
 % maybe limitations?
 
