@@ -1,8 +1,8 @@
 % !TEX root = ./main.tex
 \RequirePackage{silence} % :-\
-\WarningFilter{scrreprt}{Usage of package `titlesec'}
+% \WarningFilter{scrreprt}{Usage of package `titlesec'}
 % \WarningFilter{scrreprt}{Activating an ugly workaround}
-\WarningFilter{titlesec}{Non standard sectioning command detected}
+\WarningFilter{titlesec}{Non standard sectioning command}
 \documentclass[oneside,openright,titlepage,numbers=noenddot,%1headlines,
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,paper=a4,fontsize=11pt,
@@ -15,7 +15,7 @@ dvipsnames
   tocaligned=false, % the left column of the toc will be aligned (no indentation)
   dottedtoc=true,  % page numbers in ToC flushed right
   eulerchapternumbers=true, % use AMS Euler for chapter font (otherwise Palatino)
-  linedheaders=true,       % chaper headers will have line above and beneath
+  linedheaders=true,       % chapter headers will have line above and beneath
   floatperchapter=true,     % numbering per chapter for all floats (i.e., Figure 1.1)
   eulermath=false,  % use awesome Euler fonts for mathematical formulae (only with pdfLaTeX)
   beramono=true,    % toggle a nice monospaced font (w/ bold)
@@ -28,7 +28,7 @@ dvipsnames
 %              Personal data
 % ****************************************************************************************************
 \newcommand{\myTitle}{Type Stability in Julia: ???}
-% \newcommand{\mySubtitle}{Non-Intrusive Migration of R Ecosystem from Lazy to Strict Semantics \xspace}
+% \newcommand{\mySubtitle}{???}
 \newcommand{\myKws}{JIT, Julia, multiple dispatch, compiler optimizations, devirtualization}
 \newcommand{\myDegree}{Ph.D.\xspace}
 \newcommand{\myName}{Artem Pelenitsyn\xspace}
@@ -47,7 +47,7 @@ dvipsnames
 \usepackage{tcolorbox}
 \usepackage{amsmath}
 
-\usepackage{xspace,url,hyperref,doi,wrapfig,stmaryrd, graphicx,xparse,etoolbox}
+\usepackage{xspace,url,hyperref,doi,wrapfig,stmaryrd,graphicx,xparse,etoolbox}
 \usepackage{caption,subcaption}
 \usepackage[inline]{enumitem}
 \usepackage{cancel}
@@ -129,15 +129,18 @@ dvipsnames
 \renewcommand{\c}[1]{\lstinline[language=Julia]!#1!\xspace}
 
 % ****************************************************************************************************
-%              Control macros
+%              Convenience macros
 % ****************************************************************************************************
 \newcommand{\HIDEFORLONGVERSION}[1]{}
+\newenvironment{itquote}{\begin{quote}\itshape}{\end{quote}\ignorespacesafterend}
 
 % ****************************************************************************************
 %              Begin Document
 % ****************************************************************************************
 \begin{document}
 
+\frenchspacing
+\raggedbottom
 
 \pagenumbering{roman}
 \pagestyle{plain}
@@ -145,7 +148,7 @@ dvipsnames
 % ****************************************************************************************
 %              Title (uncomment if curious)
 % ****************************************************************************************
-% \input{title}
+\input{title}
 
 % \chapter*{abstract}
 %   As a scientific programming language, Julia strives for performance but also
@@ -175,7 +178,7 @@ dvipsnames
 \tableofcontents
 \automark[section]{chapter}
 \renewcommand{\chaptermark}[1]{\markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}}
-\renewcommand{\chaptermark}[1]{\markright{\textsc{\thesection}\enspace\spacedlowsmallcaps{#1}}}
+\renewcommand{\sectionmark}[1]{\markright{\textsc{\thesection}\enspace\spacedlowsmallcaps{#1}}}
 
 %********************************************************************
 % Mainmatter
@@ -389,31 +392,10 @@ return type depends solely on the types of its arguments; in the
 example, \c{id} is not type stable, as its return type may change depending on
 the input value (in principle).
 
-% My favorite example. Replace the above @code_warntype stuff with it and
-% hand-wavy explanation of?
-% \begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
-% function foo()
-%     x = 1
-%     for i = 1:10
-%         x /= rand()
-%     end
-%     x
-% end
-% \end{lstlisting}
-% This function will always return a \c{Float64}, which is the type of \c{x}
-% at the end of the \c{foo} definition, regardless of the (nonexistent)
-% inputs. However, the manual says that it is a type stability issue nonetheless.
-% This is because the variable \c{x} is initialized to an \c{Int64} but then
-% assigned a \c{Float64} in the loop. Some versions of the compiler boxed \c{x} as
-% it could hold two different types; of course, in this example, one level of loop
-% unrolling would alleviate the performance issue, but in general,
-% imprecise types limit compiler optimizations.
-% Conveniently, the \c{code_warntype} macro mentioned above
-% will highlight imprecise types for \emph{all} intermediate variables.
-
 
 \section{Related Work}%
 \label{sec-related}
+
 
 Type stability is a consequence of Julia's compilation strategy put into
 practice. The approach Julia takes is new and simpler than other approaches to
@@ -477,12 +459,12 @@ opaque and unpredictable for the user.
 Julia's unique design seemingly proposes a better approach based on the notion
 of type stability. My thesis is, therefore:
 
-\begin{quote}\itshape
+\begin{itquote}
 Type stability
 is a widely used program property that can be leveraged by a compiler to generate
 correct and efficient code
 and can be approximated by automated techniques.
-\end{quote}
+\end{itquote}
 
 To validate this thesis I am going to work on the following tasks:
 \begin{enumerate}
@@ -521,6 +503,49 @@ with proof of its correctness. These results are published in OOPSLA
 
 \section{Type Stability and Type Groundedness}%
 \label{sec:ts-tg}
+
+Consider the following Julia function:
+\begin{lstlisting}[language=julia]
+function foo()
+    x = 1
+    for i = 1:10
+        x /= rand()
+    end
+    x
+end
+\end{lstlisting}
+This function will always return a \c{Float64}, which is the type of \c{x} at
+the end of the \c{foo} definition, regardless of the (nonexistent) inputs.
+However, the manual says that it is a type stability issue nonetheless. This is
+because the variable \c{x} is initialized to an \c{Int64} but then assigned a
+\c{Float64} in the loop. Some versions of the compiler boxed \c{x} as it could
+hold two different types; of course, in this example, one level of loop
+unrolling would alleviate the performance issue, but in general, imprecise types
+limit compiler optimizations. Conveniently, the \c{code_warntype} macro
+introduced in \secref{sec:stability} will highlight imprecise types for
+\emph{all} intermediate variables. Furthermore, the documentation states that
+\begin{itquote}
+  [t]his serves as a warning of potential type instability
+\end{itquote}
+
+Effectively, there are two competing, type-related properties of function
+bodies. To address this confusion, we define and refer to them using two
+distinct terms:
+\begin{itemize}
+  \item \emph{type stability} is when a function's return type depends only on
+    its argument types, and
+  \item \emph{type groundedness} is when every variable's type depends
+    only on the argument types.
+\end{itemize}
+Although type stability is strictly weaker than type groundedness,
+my work in~\cite{Pelenitsyn21} establishes the connection between the two and
+explains the role of each notion in optimizations. Type
+groundedness, is useful for performance of the function itself, as it implies
+that unboxing, devirtualization, and inlining can occur. The former, type
+stability, allows the function to be used efficiently by other functions:
+namely, type-grounded functions may call a function that is only type stable but
+not grounded. For brevity, when the context is clear, we will refer to type
+stability and type groundedness as stability and groundedness in what follows.
 
 \section{Empirical Assessment of Type Stability}\label{sec:empirical}
 
