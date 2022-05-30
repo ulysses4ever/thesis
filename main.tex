@@ -568,7 +568,7 @@ The main questions of this empirical assessment are:
 
 \subsection{Methodology}
 
-We take as our main corpus the 1000 most starred (using GitHub stars) packages
+The main corpus under the study is the 1000 most starred (using GitHub stars) packages
 from the Julia package registry; as of the beginning of 2021, the registry
 contained about 5.5K packages. The main corpus is used for an automated,
 high-level, aggregate analysis. We also take the 10 most starred packages from
@@ -607,7 +607,7 @@ their documentation, especially at the stated goals and domain of a package, and
 check the Git history to see if and how type stability is mentioned in the
 commits.
 
-% \begin{table}[t]\small
+% \begin{table}[ht]\small
 % \caption{Aggregate statistics for stability and groundedness}%
 % \label{empirical:fig:all}
 % \centering
@@ -620,150 +620,136 @@ commits.
 % \end{tabular}
 % \end{table}
 
-% \section{Package-Level Analysis}
+\subsection{Package-Level Analysis}
 
-% The aggregate results of the dynamic analysis for the \goodpkgsnum packages are
-% shown in Table~\ref{empirical:fig:all}: 74\% of method instances in a package
-% are stable and 57\% grounded, on average; median values are close to the means.
-% The standard deviation is noticeable, so even on small samples of packages, we
-% expect to see packages with large deflections from the means.
+The aggregate results of the dynamic analysis for the \goodpkgsnum packages are
+as follows: 74\% of method instances in an average package are stable and 57\%
+grounded; median values are close to the means. The standard deviation is
+noticeable (22\% and 24\% for type stability and groundedness respectively), so
+even on small samples of packages, we expect to see packages with large
+deflections from the means.
 
-% A more detailed analysis of the 10 most starred packages, in alphabetical order,
-% is shown in Table~\ref{empirical:fig:top}. A majority of these packages have
-% stability numbers very close to the averages shown above, with the exception of
-% Knet, which has only 16\% of stable and 8\% of grounded instances.
+A more detailed analysis of the 10 most starred packages, in alphabetical order,
+is shown in Table~\ref{empirical:fig:top}. A majority of these packages have
+stability numbers very close to the averages shown above, with the exception of
+Knet, which has only 16\% of stable and 8\% of grounded instances.
 
 
-% \begin{table}[h]\small
-% \caption{Stability, groundedness, and polymorphism in 10 popular packages}%
-% \label{empirical:fig:top}
-% \input{figs/stability-report.tex}
-% \end{table}
+\begin{table}[h]\small
+\caption{Type stability and groundedness in 10 popular packages}%
+\label{empirical:fig:top}
+\centering
+\input{figs/stability-report.tex}
+\end{table}
 
-% The Knet package is a type stability outlier. A quick search over project's
-% documentation and history shows that the only kind of stability ever mentioned
-% is numerical stability; furthermore, the word ``performance'' is mostly used to
-% reference the performance of neural networks or CUDA-related utilities. Indeed,
-% the package primarily serves as a communication layer for a GPU; most
-% computations are done by calling the CUDA API for the purpose of building deep
-% neural networks. Thus, in this specific domain, type stability of Julia code
-% appears to be irrelevant.
 
-% On the other side of the stability spectrum is the 93\% stable (78\% grounded)
-% Genie package, which provides a web application framework. Inspecting the
-% package,
-% %
-% we can confirm that its developers were aware of type stability and
-% intentional about performance.
-% %
-% For example, Genie's Git history contains several commits mentioning (improved)
-% ``type stability.''
-% The project README file states that the authors build upon
-% \begin{quote}
-% \it ``Julia's strengths (high-level, high-performance, dynamic, JIT compiled).''
-% \end{quote}
-% Furthermore, the tutorial claims:
-% \begin{quote}
-% \it ``Genie's goals: unparalleled developer productivity, excellent run-time
-% performance.''
-% \end{quote}
+\paragraph{Type stability (non-)correlates}
+One parameter that we conjectured may correlate with stability is the average
+number of method instances per method (Inst/Meth column of
+Table~\ref{empirical:fig:top}), as it expresses the amount of polymorphism
+discovered in a package. Most of the packages compile just 2--4 instances per
+method on average, but Flux, JuMP, and Knet have this metric 5--6 times higher,
+with JuMP and Knet exploiting polymorphism the most, at 15.3 and 15.2
+instances per method, respectively. The latter may be related to the very low type stability
+index of Knet. However, the other two packages are more stable than the overall
+average. Analyzing JuMP and Flux further, we order their methods by the number
+of instances. In JuMP, the top 10\% of most instantiated methods are 5\% less
+stable and grounded than the package average, whereas in Flux, the top 10\% have
+about the same stability characteristics as on average. Overall, we cannot
+conclude that method polymorphism is related to type stability.
 
-% \paragraph{Type stability (non-)correlates}
-% One parameter that we conjectured may correlate with stability is the average
-% number of method instances per method (Inst/Meth column of
-% Table~\ref{empirical:fig:top}), as it expresses the amount of polymorphism
-% discovered in a package. Most of the packages compile just 2--4 instances per
-% method on average, but Flux, JuMP, and Knet have this metric 5--6 times higher,
-% with JuMP and Knet exploiting polymorphism the most, at 15.3 and 15.2
-% instances per method, respectively. The latter may be related to the very low type stability
-% index of Knet. However, the other two packages are more stable than the overall
-% average. Analyzing JuMP and Flux further, we order their methods by the number
-% of instances. In JuMP, the top 10\% of most instantiated methods are 5\% less
-% stable and grounded than the package average, whereas in Flux, the top 10\% have
-% about the same stability characteristics as on average. Overall, we cannot
-% conclude that method polymorphism is related to type stability.
+Another dimension of polymorphism is the variable number of arguments in a
+method (Varargs column of Table~\ref{empirical:fig:top}). We looked into three
+packages with a higher than average (9\%) number of varargs methods in the 10
+packages: Flux, Gadfly and Genie. Relative to the total number of methods, Flux has the most
+varargs methods---13\%---and those methods are only 55\% stable and 44\%
+grounded, which is a significant drop of 21\% and 26\% below this package's
+averages. However, the other two packages have higher-than-package-average
+stability rates, 82\% (Gadfly) and 99\% (Genie), with groundedness being high in
+Genie, 93\%, and low in Gadfly, 38\%. Again, no general conclusion about the
+relationship between varargs methods and their stability can be made.
 
-% Another dimension of polymorphism is the variable number of arguments in a
-% method (Varargs column of Table~\ref{empirical:fig:top}). We looked into three
-% packages with a higher than average (9\%) number of varargs methods in the 10
-% packages: Flux, Gadfly and Genie. Relative to the total number of methods, Flux has the most
-% varargs methods---13\%---and those methods are only 55\% stable and 44\%
-% grounded, which is a significant drop of 21\% and 26\% below this package's
-% averages. However, the other two packages have higher-than-package-average
-% stability rates, 82\% (Gadfly) and 99\% (Genie), with groundedness being high in
-% Genie, 93\%, and low in Gadfly, 38\%. Again, no general conclusion about the
-% relationship between varargs methods and their stability can be made.
+One property that appear to correlate well with type stability in the sample is
+application domain. For example, the Knet package, a type stability outlier,
+serves as a communication layer for a GPU; most computations are done by calling
+the CUDA API for the purpose of building deep neural networks. Thus, in this
+specific domain, type stability of Julia code appears to be irrelevant. On the
+other side of the stability spectrum is the 93\% stable (78\% grounded) Genie
+package, which provides a web application framework. Inspecting the package's
+Git history and issue tracker, we can confirm that its developers were aware of
+type stability and intentional about performance.
 
-% \section{Method-Level Analysis}
 
-% \MODIFY{
-% In this section, we inspect stability of individual methods in its possible
-% relationship with other code properties like size, control flow (number of goto
-% and return statements), and polymorphism (number of compiled instances and varargs).
-% Our analysis consists of two steps: first, we plot histograms
-% showing the number of methods with particular values of properties, and second,
-% we manually sample some of the methods with more extreme characteristics.
-% }
+\subsection{Method-Level Analysis}
 
-% \subsection{Graphical Analysis}\label{sssect:graphs}
 
-% We use two-dimensional histograms like those presented in
-% Fig.~\ref{figs:size:Pluto:main} to discover possible relationships between stability
-% of code and its other properties. The vertical axis measures stability (on the
-% left diagram) or groundedness (on the right): $1$ means that all recorded
-% instances of a method are stable/grounded, and $0$ means that none of them are.
-% The horizontal axis measures the property of interest; in the case of
-% Fig.~\ref{figs:size:Pluto:main}, it is method size (actual numbers are not
-% important here: they are computed from Julia's internal representation of source
-% code). The color of an area reflects how many methods have characteristics
-% corresponding to that area's position on the diagram; e.g.\ in
-% Fig.~\ref{figs:size:Pluto:main}, the lonely yellow areas indicate that there are about
-% 500 (400) small methods that are stable (grounded).
+In this section, we inspect stability of individual methods in its possible
+relationship with other code properties like size, control flow (number of goto
+and return statements), and polymorphism (number of compiled instances and varargs).
+Our analysis consists of two steps: first, we plot histograms
+showing the number of methods with particular values of properties, and second,
+we manually sample some of the methods with more extreme characteristics.
+% TODO: ^^ update after the rest of this subsection is fixed?
 
-% \begin{figure}[h]
-%      \begin{subfigure}[b]{0.35\textwidth}
-%        \includegraphics[width=\textwidth]{figs/Pluto-size-vs-stable.pdf}
-%      \end{subfigure}
-%      \ \ \
-%      \begin{subfigure}[b]{0.35\textwidth}
-%        \includegraphics[width=\textwidth]{figs/Pluto-size-vs-grounded.pdf}
-%      \end{subfigure}
-% \caption{Stability (left, OY axis) and groundedness (right, OY) by method size (OX) in Pluto}%
-% \label{figs:size:Pluto:main}
-% \end{figure}
+\paragraph{Graphical Analysis}\label{sssect:graphs}
 
-% We generate graphs for all of the 10 packages listed in
-% Table~\ref{empirical:fig:top}, for all combinations of the properties of
-% interest\PAPERVERSIONINLINE{; the graphs are available in the extended
-% version~\cite{oopsla21jules:arx}}{; the graphs are provided in \appref{sec:app}}.
-% Most of the graphs look very similar to the ones from
-% Fig.~\ref{figs:size:Pluto:main}, which depicts Pluto---a package for creating
-% Jupyter-\hspace{0pt}like notebooks in Julia. In the following paragraphs, we
-% discuss features of these graphs and highlight the discrepancies.
+We use two-dimensional histograms like those presented in
+Fig.~\ref{figs:size:Pluto:main} to discover possible relationships between stability
+of code and its other properties. The vertical axis measures stability (on the
+left diagram) or groundedness (on the right): $1$ means that all recorded
+instances of a method are stable/grounded, and $0$ means that none of them are.
+The horizontal axis measures the property of interest; in the case of
+Fig.~\ref{figs:size:Pluto:main}, it is method size (actual numbers are not
+important here: they are computed from Julia's internal representation of source
+code). The color of an area reflects how many methods have characteristics
+corresponding to that area's position on the diagram; e.g.\ in
+Fig.~\ref{figs:size:Pluto:main}, the lonely yellow areas indicate that there are about
+500 (400) small methods that are stable (grounded).
 
-% The first distinctive feature of the graphs is the hot area in the top-left
-% corner: most of the 10 packages employ many small, stable/grounded methods;
-% the bottom-left corner is usually the second-most hot, so a significant number
-% of small methods are unstable/ungrounded. For the Knet package,
-% these two corners are reversed; for DifferentialEquations, they are reversed
-% only on the groundedness plot. Both of these facts are not surprising after seeing
-% Table~\ref{empirical:fig:top}, but having a visual tool to discover such facts
-% may be useful for package developers.
+\begin{figure}[h]
+\centering
+     \begin{subfigure}[b]{0.35\textwidth}
+       \includegraphics[width=\textwidth]{figs/Pluto-size-vs-stable.pdf}
+     \end{subfigure}
+     \ \ \
+     \begin{subfigure}[b]{0.35\textwidth}
+       \includegraphics[width=\textwidth]{figs/Pluto-size-vs-grounded.pdf}
+     \end{subfigure}
+\caption{Stability (left, OY axis) and groundedness (right, OY) by method size (OX) in Pluto}%
+\label{figs:size:Pluto:main}
+\end{figure}
 
-% The second distinctive feature of these graphs is the behavior of large,
-% ungrounded methods (bottom-right part of the right-hand-side graph). The
-% ``tail'' of large methods on the groundedness graphs almost always lies below
-% the $1$-level; furthermore, larger methods tend to be less grounded.
-% However, if we switch from groundedness to stability plots, a large portion of
-% the tail jumps to the $1$-level. This means larger methods are unlikely to be
-% grounded (as expected, because of the growing number of registers), but they
-% still can be stable and thus efficiently used by other methods. Pluto provides a
-% good example of such a method: its \c{explore!} method of size 13003 (right-most
-% rectangle on Fig.~\ref{figs:size:Pluto:main}, 330 lines in the source code) analyzes
-% Julia syntax trees for scope information with a massive \c{if/else if/..} statement.
-% This method has a very low chance of being grounded, and it was not grounded on the
-% runs we analyzed. However, the method has a concrete return type annotation, so
-% Julia (and the programmer) can easily see that it is stable.
+We generated graphs for all of the 10 packages listed in
+Table~\ref{empirical:fig:top}, for all combinations of the properties of
+interest\PAPERVERSIONINLINE{~\cite{oopsla21jules:arx}}{; the graphs are provided in \appref{sec:app}}.
+Most of the graphs look very similar to the ones from
+Fig.~\ref{figs:size:Pluto:main}, which depicts Pluto---a package for creating
+Jupyter-\hspace{0pt}like notebooks in Julia. In the following paragraphs, we
+discuss features of these graphs and highlight the discrepancies.
+
+The first distinctive feature of the graphs is the hot area in the top-left
+corner: most of the 10 packages employ many small, stable/grounded methods;
+the bottom-left corner is usually the second-most hot, so a significant number
+of small methods are unstable/ungrounded. For the Knet package,
+these two corners are reversed; for DifferentialEquations, they are reversed
+only on the groundedness plot. Both of these facts are not surprising after seeing
+Table~\ref{empirical:fig:top}, but having a visual tool to discover such facts
+may be useful for package developers.
+
+The second distinctive feature of these graphs is the behavior of large,
+ungrounded methods (bottom-right part of the right-hand-side graph). The
+``tail'' of large methods on the groundedness graphs almost always lies below
+the $1$-level; furthermore, larger methods tend to be less grounded.
+However, if we switch from groundedness to stability plots, a large portion of
+the tail jumps to the $1$-level. This means larger methods are unlikely to be
+grounded (as expected, because of the growing number of registers), but they
+still can be stable and thus efficiently used by other methods. Pluto provides a
+good example of such a method: its \c{explore!} method of size 13003 (right-most
+rectangle on Fig.~\ref{figs:size:Pluto:main}, 330 lines in the source code) analyzes
+Julia syntax trees for scope information with a massive \c{if/else if/..} statement.
+This method has a very low chance of being grounded, and it was not grounded on the
+runs we analyzed. However, the method has a concrete return type annotation, so
+Julia (and the programmer) can easily see that it is stable.
 
 % %% PLZ, DO NOT DELETE THIS
 % % Plots where the size axis is replaced with the number of branching or return
@@ -785,139 +771,95 @@ commits.
 % Gen's groundedness is 14\% less than the average on the whole corpus of
 % \goodpkgsnum packages.
 
-% \subsection{Manual Inspection}
+\paragraph{Manual Inspection}
 
-% \ADD{
-% To better understand the space of stable methods,
-% we performed a qualitative analysis of a sample of stable methods that
-% have either large sizes or many instances.
+To better understand the space of stable methods,
+we performed a qualitative analysis of a sample of stable methods that
+have either large sizes or many instances.
 
-% Many large methods have one common
-% feature: they often have a return type ascription on the method header of
-% the form:
-% }
-% \begin{lstlisting}[language=julia]
-% function f(...) :: Int
-%   ...
-% end
-% \end{lstlisting}
-% \ADD{
-% These ascriptions are a relatively new tool in Julia, and they are used only
-% occasionally, in our experience. An ascription makes the Julia compiler insert implicit
-% conversions on all return paths of the method. Conversions are user extendable:
-% if the user defines type \c{A}, they can also add methods of a special
-% function \c{convert} for conversion to \c{A}. This function will be called
-% when the compiler expects \c{A} but infers a different type, for example,
-% if the method returns \c{B}.
-% If the method returns \c{A}, however, then \c{convert} is a no-op.
+Many large methods have one common
+feature: they often have a return type ascription on the method header of
+the form:
+\begin{lstlisting}[language=julia]
+function f(...) :: Int
+  ...
+end
+\end{lstlisting}
+These ascriptions are a relatively new tool in Julia, and they are used only
+occasionally, in our experience. An ascription makes the Julia compiler insert implicit
+conversions on all return paths of the method. Conversions are user extendable:
+if the user defines type \c{A}, they can also add methods of a special
+function \c{convert} for conversion to \c{A}. This function will be called
+when the compiler expects \c{A} but infers a different type, for example,
+if the method returns \c{B}.
+If the method returns \c{A}, however, then \c{convert} is a no-op.
 
-% Type ascriptions may be added simply as documentation, but they can also
-% be used to turn type instability into a run-time error:
-% if the ascribed type is concrete and a necessary conversion is not available,
-% the method will fail. This provides a useful, if
-% unexpected, way to assure that a large method never becomes unstable.
+Type ascriptions may be added simply as documentation, but they can also
+be used to turn type instability into a run-time error:
+if the ascribed type is concrete and a necessary conversion is not available,
+the method will fail. This provides a useful, if
+unexpected, way to assure that a large method never becomes unstable.
 
-% While about 85\% of type-stable methods in the top 10 packages are uninteresting
-% in that they always return the same type, sampling the rest illuminates
-% a clear pattern: the methods resemble what we
-% are used to see in statically typed languages with parametric polymorphism. Below
-% is a list of categories that we identify in this family.
-% }
+While about 85\% of type-stable methods in the top 10 packages are uninteresting
+in that they always return the same type, sampling the rest illuminates
+a clear pattern: the methods resemble what we
+are used to see in statically typed languages with parametric polymorphism.
+% Below is a list of categories that we identify in this family.
+Here are the categories that we identify in this group of methods.
 
-% \begin{itemize}
+\begin{itemize}
+\item
+  Various forms of the identity function---a surprisingly popular function that
+  packages keep reinventing. In an impure language, such as Julia, an identity
+  function can produce various side effects.
+  For example, the Genie package adds a caching effect to
+  its variant of the identity function:
 
-% \lstset{basicstyle=\footnotesize\tt,linewidth=.93\textwidth}
+\item
+  Container manipulations for various kinds of containers, such as arrays, trees, or
+  tuples. For instance, the latter is exemplified by the following function
+  from Flux, which maps a tuple of functions by applying them to the given argument:
+  %\clearpage
+  % Oh, no! Manual page breaking makes me sad! -- Artem
 
-% \ADD{
-% \item
-%   Various forms of the identity function---a surprisingly popular function that
-%   packages keep reinventing. In an impure language, such as Julia, an identity
-%   function can produce various side effects.
-%   For example, the Genie package adds a caching effect to
-%   its variant of the identity function:
-% }
-% \begin{lstlisting}[language=julia]
-% # Define the secret token used in the app for encryption and salting.
-% function secret_token!(value::AbstractString=Generator.secret_token())
-%   SECRET_TOKEN[] = value
-%   return value
-% end
-% \end{lstlisting}
+\item
+  Smart constructors for user-defined polymorphic structures. For example, the following
+  convenience function from JuMP creates an instance of the
+  \c{VectorConstraint} structure with three fields, each of which is polymorphic:
 
-% \ADD{
-% \item
-%   Container manipulations for various kinds of containers, such as arrays, trees, or
-%   tuples. For instance, the latter is exemplified by the following function
-%   from Flux, which maps a tuple of functions by applying them to the given argument:
-%   %\clearpage
-%   % Oh, no! Manual page breaking makes me sad! -- Artem
-% }
-% \begin{lstlisting}[language=julia]
-% function extraChain(fs::Tuple, x)
-%   res = first(fs)(x)
-%   return (res, extraChain(Base.tail(fs), res)...)
-% end
-% extraChain(::Tuple{}, x) = ()
-% \end{lstlisting}
+\item
+  Type computations---an unusually wide category for a dynamically typed
+  language. Thus, for instance, the Gen package defines a type that represents generative
+  functions in probabilistic programming, and a function that extracts the
+  return and argument types:
 
-% \ADD{
-% \item
-%   Smart constructors for user-defined polymorphic structures. For example, the following
-%   convenience function from JuMP creates an instance of the
-%   \c{VectorConstraint} structure with three fields, each of which is polymorphic:
-% }
-% \begin{lstlisting}[language=julia]
-% function build_constraint(_error::Function, Q::Symmetric{V,M}, ::PSDCone)
-%         where {V<:AbstractJuMPScalar,M<:AbstractMatrix{V}}
-%     n = LinearAlgebra.checksquare(Q)
-%     shape = SymmetricMatrixShape(n)
-%     return VectorConstraint(
-%         vectorize(Q, shape),
-%         MOI.PositiveSemidefiniteConeTriangle(n),
-%         shape)
-% end
-% \end{lstlisting}
+\end{itemize}
 
-% \ADD{
-% \item
-%   Type computations---an unusually wide category for a dynamically typed
-%   language. Thus, for instance, the Gen package defines a type that represents generative
-%   functions in probabilistic programming, and a function that extracts the
-%   return and argument types:
-% }
-% \begin{lstlisting}[language=julia]
-% # Abstract type for a generative function with return value type T and trace type U.
-% abstract type GenerativeFunction{T,U <: Trace} end
-% get_return_type(::GenerativeFunction{T,U}) where {T,U} = T
-% get_trace_type(::GenerativeFunction{T,U}) where {T,U} = U
-% \end{lstlisting}
+\subsection{Takeaways}
 
-% \lstset{linewidth=\textwidth}
+My analysis shows that a Julia user can expect mostly stable (74\%) and
+somewhat grounded (57\%) code in widely used Julia packages. If the authors
+are intentional about performance and stability, as demonstrated by the Genie
+package, those numbers can be much higher. Although my sample of packages is
+too small to draw strong conclusions, several factors can be
+used by a Julia programmer to pinpoint potential sources of instability in their
+package. For example, in some cases, varargs methods might indicate instability.
+Large methods, especially ones with heavy control flow,
+tend to not be type grounded but often are stable; in particular,
+if they always return the same concrete type.
+Finally, although highly polymorphic methods are neither stable nor unstable
+in general, code written in the style of parametric polymorphism
+often suggests type stability.
 
-% \end{itemize}
+My dynamic analysis and visualization code is written in Julia (and some bash
+code), and relies on the vanilla Julia implementation. Thus, it can be employed
+by package developers to study type instability in their code, as well as check
+for regressions.
 
-% \section{Takeaways}
 
-% Our analysis shows that a Julia user can expect mostly stable (74\%) and
-% somewhat grounded (57\%) code in widely used Julia packages. If the authors
-% are intentional about performance and stability, as demonstrated by the Genie
-% package, those numbers can be much higher. Although our sample of packages is
-% too small to draw strong conclusions, we suggest that several factors can be
-% used by a Julia programmer to pinpoint potential sources of instability in their
-% package. For example, in some cases, varargs methods might indicate instability.
-% Large methods, especially ones with heavy control flow,
-% tend to not be type grounded but often are stable; in particular,
-% if they always return the same concrete type.
-% Finally, although highly polymorphic methods are neither stable nor unstable
-% in general, code written in the style of parametric polymorphism
-% often suggests type stability.
+\section{Formalizing Type Stability: Jules}%
+\label{sec:jules}
 
-% Our dynamic analysis and visualization code is written in Julia (and some bash
-% code), and relies on the vanilla Julia implementation. Thus, it can be employed
-% by package developers to study type instability in their code, as well as check
-% for regressions.
-
-\section{Formalizing Type Stability: Jules}\label{sec:jules}
 
 To simplify reasoning about type stability and groundedness, we first
 define \jules, an abstract machine that provides an idealized version of
