@@ -837,7 +837,7 @@ Here are the categories that we identify in this group of methods.
 
 \end{itemize}
 
-\subsection{Takeaways}
+\subsection{Main Results}
 
 My analysis shows that a Julia user can expect mostly stable (74\%) and
 somewhat grounded (57\%) code in widely used Julia packages. If the authors
@@ -1139,13 +1139,14 @@ extended as $\env + \val$, indexed as $\idx\env\k$, and their last value is
 % Otherwise, the call can proceed, by \SC{Disp} for dispatched calls and \SC{Direct}
 % for direct ones.
 % %
-% A dispatched call starts by prompting the JIT compiler to
-% specialize method \m from the method table~\mtbl with the argument types \ol\Ty
-% and produce a new method table $\mtbl'$.
-% Next, using the new table $\mtbl'$, the dispatch mechanism $\mathcal D$
-% determines the method to invoke. Finally, the body \ol{\st'} of the method and
-% call arguments \idx\env{\ol{k}} form a new stack frame for the callee,
-% and the program steps with the extended stack and the new table.
+The most interesting rule in the semantics is the one representing dispatched
+calls (\SC{Disp}). A dispatched call starts by prompting the JIT compiler to
+specialize method \m from the method table~\mtbl with the argument types \ol\Ty
+and produce a new method table $\mtbl'$. Next, using the new table $\mtbl'$, the
+dispatch mechanism $\mathcal D$ determines the method to invoke. Finally, the
+body \ol{\st'} of the method and call arguments \idx\env{\ol{k}} form a new
+stack frame for the callee, and the program steps with the extended stack and
+the new table.
 % %
 % Direct calls are simpler because
 % a direct call $\msig\m{\ol\Ty}$ uniquely identifies the
@@ -1169,13 +1170,14 @@ extended as $\env + \val$, indexed as $\idx\env\k$, and their last value is
 % %the program is ill-formed. while \emph{erred} states are merely ill-typed.
 % %JB: we don't define a type system, so I would not use "ill-typed" terminology
 
-\begin{definition}[Errors] A non-empty configuration \frm, \mtbl
- that cannot step $\frm, \mtbl \step \frm', \mtbl'$ has \emph{erred} if its
- top-most frame, \E\ \ol\st, starts with $\cond\i\j{\call\m{\ol{\v\k}}}{\v\l}$,
- where \ol\Ty is the types of \ol{\v\k} in \E, $\m\in\mtbl$, and
- \dispatch\mtbl\m{\ol\Ty} is undefined. Otherwise, \frm, \mtbl is
- \emph{wrong}.
-\end{definition}
+% \begin{definition}[Errors] A non-empty configuration \frm, \mtbl
+%  that cannot step $\frm, \mtbl \step \frm', \mtbl'$ has \emph{erred} if its
+%  top-most frame, \E\ \ol\st, starts with $\cond\i\j{\call\m{\ol{\v\k}}}{\v\l}$,
+%  where \ol\Ty is the types of \ol{\v\k} in \E, $\m\in\mtbl$, and
+%  \dispatch\mtbl\m{\ol\Ty} is undefined. Otherwise, \frm, \mtbl is
+%  \emph{wrong}.
+% \end{definition}
+
 
 \paragraph{Dispatch}\label{sec:disp}
 
@@ -1220,6 +1222,60 @@ returns types $\ol\ty'$ such that each $\ty'_i$ is the type of register of
 $\st_i$. Any inference algorithm that satisfies two technical requirements, \SC{Soundness} and
 \SC{Monotonicity}, is acceptable.
 
+\paragraph{Compilation}\label{sec:comp}
+%
+Devirtualization in \jules happens when the \SC{Disp} rule invokes the
+$\jit(\mtbl,\m,\ol\Ty)$ relation. The relation specializes methods according to
+the inferred type information, replacing
+% non-\emph{err}
+dispatched calls with direct calls where
+possible. In particular, dispatched calls
+cause a recursive JIT invocation, followed by rewriting to a direct call. To
+avoid recursive compilation, a stub method $\langle \msig\m{\ol{\Ty}}\done,
+\ol\ty \rangle$ is added at the beginning of compilation,
+and over-written when compilation is done. As the source program is finite and
+new types are not added during compilation, it terminates.
+
+
+\subsection{Main Results}%
+\label{sec:stability-formal}\label{sec:jit-correct}
+
+Using the formalization shown above, I define type stability and type
+groundedness in \jules and prove the following.
+
+\begin{itemize}
+  \item
+Type stability is a necessary (but not sufficient)
+condition for type groundedness.
+
+  \item
+Type-grounded methods
+compile to method instances without dynamically dispatched calls.
+
+  \item
+The compiler is correct: if the \jit relation is replaced by the one that
+does nothing, the result of evaluation of the program remains the same.
+\end{itemize}
+
+% \begin{definition}[Stable and Grounded]\label{def:ground}
+%   Let \meth{\m}{\ol\ty}{}{\ol\st} be an original method in a well-formed
+%   method table \mtbl. Given concrete argument types $\ol\Ty <: \ol\ty$,
+%   if $\typeinf{\origmtbl{\mtbl}}{\m}{\ol\Ty} = \ol{\ty'}$,
+%   and
+%   \begin{enumerate}
+%   \item  $\last{\ol{\ty'}} = \Ty'$, i.e. the return type is concrete, then
+%     the method is \emph{type stable for \ol\Ty},
+%   \item $\ol{\ty'} = \ol{\Ty'}$, i.e. all register types are concrete, then the
+%     method is \emph{type-grounded for \ol\Ty}.
+%   \end{enumerate}
+
+%   Furthermore, a method is called \emph{type stable (grounded) for a set $W$
+%   of concrete argument types} if it is type stable (grounded) for every
+%   $\ol\Ty \in W$.
+% \end{definition}
+
+
+
 % ****************************************************************************************
 %              Chap. 4: Plan of Work
 % ****************************************************************************************
@@ -1229,7 +1285,7 @@ $\st_i$. Any inference algorithm that satisfies two technical requirements, \SC{
 \label{chap-plan}
 
 What remains to tackle is the third task of those declared in
-\secref{chap-problem} (Research Problem), namely, devise an approach to
+\secref{chap-problem} (Research Problem), namely, to devise an approach to
 approximate the dynamic property of type stability statically, without running
 the compiler. I am currently working on this task and have a draft of this
 approach, as well as a tool implementing it.
