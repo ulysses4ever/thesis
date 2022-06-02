@@ -152,18 +152,23 @@ dvipsnames
 % ****************************************************************************************
 \input{title}
 
-% \chapter*{abstract}
-%   As a scientific programming language, Julia strives for performance but also
-%   provides high-level productivity features. To avoid performance pathologies,
-%   Julia users are expected to adhere to a coding discipline that enables
-%   so-called type stability. Informally, a function is type stable if the type of
-%   the output depends only on the types of the inputs, not their values.
+\chapter*{abstract}
+Design space for JIT compilers is big and Julia represents one viewpoint.
+The outstading features of this viewpoint is simplicity and efficiency, which
+are enabled by a clever co-design of the language and its implementation.
+The combination of simplicity and efficiency also enables users to employ
+language strengths and avoid common pitfalls that treats the wide family of JIT
+compilers.
 
-%   This paper provides a formal definition of type stability as well as a
-%   stronger property of type groundedness, shows that groundedness enables
-%   compiler optimizations, and proves the compiler correct. We also perform a
-%   corpus analysis to uncover how these type-related properties manifest in
-%   practice.
+My work has been focused on type stability in Julia~--- a program property
+enabling key optimizations in the compiler. I have been working on several
+questions related to the property. First, gathering data on how widespread the
+property in the Julia code available publicly, and what features may be related
+to the property. Second, capturing a formal model of a JIT recognizing the
+property at run time and performing optimizations accordingly. Third, still in
+works, designing an automated approach to approximate the property without
+running the compiler, and, based on this approach, allow programmers to express
+the assumptions about the property directly in the code.
 
 % \maketitle
 
