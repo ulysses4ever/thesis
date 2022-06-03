@@ -28,7 +28,7 @@ dvipsnames
 %              Personal data
 % ****************************************************************************************************
 \newcommand{\myTitle}{Type Stability in Julia}
-\newcommand{\mySubtitle}{Simple and Efficient Optimization Technique}
+\newcommand{\mySubtitle}{A Simple and Efficient Optimization Technique}
 \newcommand{\myKws}{JIT, Julia, multiple dispatch, compiler optimizations, devirtualization}
 \newcommand{\myDegree}{Ph.D.\xspace}
 \newcommand{\myName}{Artem Pelenitsyn\xspace}
@@ -220,15 +220,15 @@ signature, and all methods are stored in a so-called method table.
 At run time, the Julia implementation dispatches a function call to
 the \emph{most specific} method by comparing the types of the arguments to the
 types of the parameters of all methods of that function. As an example of a
-function and its constituent methods, consider \c{+}; as of version 1.5.4 of the
+function and its constituent methods, consider the \c{+} function. As of version 1.5.4 of the
 language, there are 190 implementations of \c{+}, each covering a
 specific case determined by its type signature. Fig.~\ref{plus} displays custom
 implementations for 16-bit floating point numbers, missing values,
 big-floats/big-integers, and complex arithmetic.
-\ADD{Although at the source-code level, multiple methods look similar to
+Although at the source-code level, multiple methods look similar to
 overloading known from languages like C++ and Java, the key difference is that
 those languages resolve overloading statically whereas Julia does that
-dynamically using multiple dispatch.}
+dynamically using multiple dispatch.
 
 \begin{figure}
 \begin{lstlisting}[language=julia]
@@ -258,7 +258,8 @@ composition can be abstract or concrete. \citet{oopsla18b} gives a detailed
 discussion of the type language and of subtyping.
 
 Any function call in a program, such as \c{x+y}, requires choosing one of the
-methods of the target function. \emph{Method dispatch} is a multi-step process.
+methods of the target function. \emph{Method dispatch} chooses the method using
+a multi-step process.
 First, the implementation obtains the concrete types of arguments. Second, it
 retrieves applicable methods by checking for subtyping between argument types
 and type annotations of the methods. Next, it sorts these methods into subtype
@@ -266,7 +267,7 @@ order. Finally, the call is dispatched to the most specific method---a method
 such that no other applicable method is its strict subtype. If no such
 method exists, an error is produced. As an example, consider the above
 definition of \c{+}: a call with two \c{BigFloat}'s dispatches to
-definition 8 from \figref{plus}.
+definition 8 from \figref{plus}: \c{+(x::BigFloat, y::BigFloat)}.
 
 Function calls are pervasive in Julia, and their efficiency is crucial for
 performance. However, the many complex type-level operations involved in dispatch
@@ -281,8 +282,8 @@ frequently allows the compiler to devirtualize and inline the function calls
 within a method~\cite{aigner}, thus improving performance. However, this
 optimization is not always possible: if type inference cannot produce a
 sufficiently specific type, then the call cannot be devirtualized. Consider the
-prior example of \c{x+y}: if \c{y} is known to be one of \c{BigFloat} or
-\c{BigInt}, the method to call cannot be determined. This problem arises for
+prior example of \c{x+y}: the method to call cannot be determined
+if \c{y} is known to be one of \c{BigFloat} or \c{BigInt}. This problem arises for
 various reasons, for example, accessing a struct field of an abstract type, or
 the type inferencer losing precision due to a branching statement. A more
 detailed description of the compilation strategy and its performance is given in
@@ -507,11 +508,12 @@ To validate this thesis I am going to work on the following tasks:
 \label{chap-contrib}
 
 In my research so far, I have addressed the first two of the three tasks
-declared in \secref{chap-problem} (Research Problem). Namely, I performed an
-assessment of type stability in the wild and proved correct a formal model of a JIT,
-which performs the key Julia optimization (devirtualization) for type-stable code.
-These results are published in OOPSLA
-'21~\cite{Pelenitsyn21} and summarized below.
+declared in \secref{chap-problem} (Research Problem). First, I performed an
+assessment of type stability in the wild by evaluating a corpus of Julia programs.
+%
+I then built a formal model of a JIT performing the key Julia optimization
+(devirtualization) for type-stable code and proved its correctness. These
+results are published in OOPSLA '21~\cite{Pelenitsyn21} and summarized below.
 
 
 \section{Type Stability and Type Groundedness}%
@@ -580,7 +582,7 @@ The main questions of this empirical assessment are:
 
 \subsection{Methodology}
 
-The main corpus under the study is the 1000 most starred (using GitHub stars) packages
+The main corpus under the study is the 1000 packages with the most GitHub stars
 from the Julia package registry; as of the beginning of 2021, the registry
 contained about 5.5K packages. The main corpus is used for an automated,
 high-level, aggregate analysis. I also take the 10 most starred packages from
@@ -1296,14 +1298,14 @@ does nothing, the result of evaluation of the program remains the same.
 \label{chap-plan}
 
 The remaining work is the third task of those declared in
-\secref{chap-problem} (Research Problem), namely, to devise an approach to
-approximate the dynamic property of type stability statically, without running
+\secref{chap-problem} (Research Problem): an approach to
+approximate type stability statically, without running
 the compiler. I am currently working on this task and have a draft of this
 approach, as well as a tool implementing it.
-The tool successfully runs on several sample packages but the results need to be
-analyzed and, as a result, the approach may need to be augmented.
-I plan to analyze the data, apply necessary alterations, and
-write up the approach and the results of analysis as a paper to be submitted for
+The tool successfully runs on several sample packages but the output needs to be
+validated.
+I plan to analyze the data, augment the approach if necessary, and
+write up the results as a paper to be submitted for
 OOPSLA '23. After that I will write the dissertation, which
 should take until March 2023. I intend to defend the thesis in April 2023 (the
 end of Spring semester at Northeastern).
