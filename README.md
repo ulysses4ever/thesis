@@ -2,7 +2,7 @@
 
 * [Link to the current version](https://ccs.neu.edu/~artem/proposal.pdf)
 
-* [Overleaf](https://www.overleaf.com/2132545451cnjbvdcspnyp)
+* [Link to the latest release](https://github.com/ulysses4ever/thesis-proposal/releases/latest/download/main.pdf)
 
 ### Meeting 2022-05-25
 
