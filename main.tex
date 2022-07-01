@@ -829,23 +829,24 @@ Here are the subcategories identified in this group of methods.
   packages keep reinventing. In an impure language, such as Julia, an identity
   function can produce various side effects.
   For example, the Genie package adds a caching effect to
-  its variant of the identity function:
+  its variant of the identity function called \c{secret_token!}.
+
+\item Container manipulations for various kinds of containers, such as arrays,
+  trees, or tuples. For instance, the Flux package defines the
+  \c{extraChain} function that maps a tuple of functions by applying
+  them to a given argument.
 
 \item
-  Container manipulations for various kinds of containers, such as arrays, trees, or
-  tuples. For instance, the latter is exemplified by the following function
-  from Flux, which maps a tuple of functions by applying them to the given argument:
-
-\item
-  Smart constructors for user-defined polymorphic structures. For example, the following
-  convenience function from JuMP creates an instance of the
-  \c{VectorConstraint} structure with three fields, each of which is polymorphic:
+  Smart constructors for user-defined polymorphic structures. For example, the
+  \c{build_constraint} convenience function from JuMP creates an instance of the
+  \c{VectorConstraint} structure with three fields, each of which is polymorphic.
 
 \item
   Type computations---an unusually wide category for a dynamically typed
-  language. Thus, for instance, the Gen package defines a type that represents generative
-  functions in probabilistic programming, and a function that extracts the
-  return and argument types:
+  language. For instance, the Gen package defines a type that represents generative
+  functions in probabilistic programming; the type has two type parameters, for
+  argument and for return type of the function; in order to extract those type
+  arguments (and return them as objects) Gen defines two simple polymorphic functions.
 
 \end{itemize}
 
