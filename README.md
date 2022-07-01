@@ -1,6 +1,8 @@
 ## Thesis Proposal
 
-* [Link to the current version](https://ccs.neu.edu/~artem/proposal.pdf)
+* [Link to the current
+version](https://github.com/ulysses4ever/thesis-proposal/releases/download/dev/main.pdf)
+  (or on the [ccs server](https://ccs.neu.edu/~artem/proposal.pdf))
 
 * [Link to the latest release](https://github.com/ulysses4ever/thesis-proposal/releases/latest/download/main.pdf)
 
