@@ -1,12 +1,20 @@
 name: Build and upload LaTeX document
-on: [push, workflow_dispatch]
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
 jobs:
   build_upload_latest_pdf:
-    name: "Build and Upload the latest PDF"
+    name: "Build, upload, and pre-release the latest PDF"
     runs-on: ubuntu-latest
     steps:
+
       - name: Set up Git repository
         uses: actions/checkout@v2
+
       - name: Build LaTeX document
         uses: xu-cheng/latex-action@v2
         with:
@@ -15,9 +23,18 @@ jobs:
       - uses: mdallasanta/ssh-scp-deploy@v1.0.4
         with:
           local: './main.pdf'
-          remote: '~/.www/proposal.pdf'
+          remote: '~/.www/thesis.pdf'
           host: login.ccs.neu.edu
           user: artem
           key: ${{secrets.SSH_PRIVATE_KEY}}
           ssh_options: -o StrictHostKeyChecking=no
           scp_options: -v
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "dev"
+          prerelease: true
+          title: "Development Version"
+          files: |
+            main.pdf
