@@ -1,0 +1,22 @@
+\appendix
+
+\chapter{Graphs for \secref{sec:empirical}}\label{sec:app}
+
+This appendix contains graphs similar to the ones described in
+\secref{sssect:graphs} for all 10 packages discussed in \secref{sec:empirical}.
+There are 6 graphs per package: the top two show the relationship between the
+method size and stability (left) or groundedness (right); the other four graphs
+connect the two type-related properties with control-flow features: the number
+of gotos and the number of returns in a method instance.
+
+Note that the bottom four graphs for every package are different from the top
+two in that they group method instances, not methods. Therefore,
+the bottom four graphs have all data bins either at level $OY=0$ or $1$, because
+we always know whether a method instance is stable (grounded) or not.
+The change comes from the fact that the control-flow features in question
+depend on compiled code and the way it was optimized: e.\;g., an \c{if true} in a
+method can be optimized away during compilation.
+
+\clearpage
+
+\input{figs/all-package-graphs.tex}

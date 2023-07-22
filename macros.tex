@@ -597,20 +597,28 @@
 \newtheorem{requirement}{Requirement}[section]
 \newtheorem{definition}{Definition}[chapter]
 
+%  \theoremstyle{acmplain}
+  \newtheorem{theorem}{Theorem}[section]
+  \newtheorem{conjecture}[theorem]{Conjecture}
+  \newtheorem{proposition}[theorem]{Proposition}
+  \newtheorem{lemma}[theorem]{Lemma}
+  \newtheorem{corollary}[theorem]{Corollary}
+%  \theoremstyle{acmdefinition}
+  \newtheorem{example}[theorem]{Example}
+%  \newtheorem{definition}[theorem]{Definition}
+
 \newcommand{\goodpkgsnum}{760\xspace}
 \newcommand{\juliaversion}{Julia 1.5.4\xspace}
 
 %% PAPER VERSION AND HIGHLIGHTING
 %\usepackage{showframe}  %% for checking margins
-\newcommand{\ExtendedVersion}{0}    %% 1 if yes, 0 if not
+\newcommand{\ExtendedVersion}{1}    %% 1 if yes, 0 if not
 \newcommand{\HightlightChanges}{0}  %% 1 if yes, 0 if not
 
 % For submission, use #1; for extended version, use #2
 \newcommand{\PAPERVERSION}[2]{%1
 \ifnum1=\ExtendedVersion\relax
-\begin{changebar}
 #2%
-\end{changebar}\xspace
 \else
 #1\xspace
 \fi}
@@ -642,4 +650,9 @@
 #1
 \fi}
 
+% Compat with acmart
+\newcommand{\Description}{}
+
+% ATTENTION, passengers: this is the VERY END of the file as pdflatex will see
+% it!
 \endinput
