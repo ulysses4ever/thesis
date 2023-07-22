@@ -1,0 +1,50 @@
+\chapter{Related Work}%
+\label{sec-related}
+
+
+Type stability is a consequence of Julia's compilation strategy put into
+practice. The approach Julia takes is new and simpler than other approaches to
+efficient compilation of dynamic code.
+
+Attempts to efficiently compile dynamically dispatched languages go back nearly
+as far as dynamically dispatched languages themselves.
+\citet{HurricaneSmalltalk} used a combination of run-time-checked user-provided
+types and a simple type inference algorithm to inline methods. \citet{CU89}
+pioneered the just-in-time model of compilation in which methods are specialized
+based on run-time information. \citet{holzle1994odd} followed up with method
+inlining optimization based on recently observed types at the call site.
+\citet{Psyco2004} specialized methods on invocation based on their arguments,
+but this was limited to integers. Similarly, \citet{cannon2005localized} developed a
+type-inferring just-in-time compiler for Python, but it was limited by the
+precision of type inference. \citet{RATA} extended this approach with a more
+sophisticated abstract interpretation-based inference system for JavaScript.
+
+At the same time, trace-based compilers approached the problem from another
+angle~\cite{chang2007efficient}.
+Instead of inferring from method calls, these compilers had exact type
+information for variables in straight-line fragments of the program called
+traces. \citet{gal09} describes a trace-based compiler for JavaScript that avoids
+some pitfalls of type stability, as traces can cross method boundaries.
+However, it is more difficult to fix a program when tracing does not work well,
+for the boundaries of traces are not apparent to the programmer.
+
+Few of these approaches to compilation have been formalized.
+\citet{CompilingWithTraces} described the core of a trace-based compiler with
+two optimizations, variable folding and dead branch/store elimination.
+\citet{VerifiedJITx86} formalized self-modifying code for x86. Finally,
+\citet{popl18} formally described speculation and deoptimization and proved
+correctness of some optimizations; \citet{oopsla21} extended and mechanized
+these results.
+
+The Julia compiler uses standard techniques, but differs considerably in how it
+applies them. Many production just-in-time compilers rely on static type
+information when it is available, as well as a combination of profiling and
+speculation~\cite{TruffleIR,TruffleInterpreters}. Speculation allows these
+compilers to perform virtual dispatch more efficiently~\cite{oopsla20c}. Profiling allows
+for tuning optimizations to a specific workload~\cite{GoWithTheFlow,HHVMJIT},
+eliminating overheads not required for cases observed during execution. Julia, on
+the other hand, performs optimization only once per method instance.
+This presents both advantages
+and issues. For one, Julia's performance is more predictable than that of other
+compilers, as the warmup is simple~\cite{VMsBlow}. Overall, Julia is able
+to achieve high performance with a simple compiler.
