@@ -1,12 +1,11 @@
 %              Convenience macros
 % ****************************************************************************************************
 \newcommand{\HIDEFORLONGVERSION}[1]{}
-\newcommand{\sf}{\mathsf}
 \newenvironment{itquote}{\begin{quote}\itshape}{\end{quote}\ignorespacesafterend}
 
 %% Formatting
 \newcommand{\EM}[1]{\ensuremath{#1}\xspace}
-\newcommand{\xt}[1]{{\sf{#1}}}
+\newcommand{\xt}[1]{{\mathsf{#1}}}
 \newcommand{\bt}[1]{\xt{\bf #1}}
 \newcommand{\EMxt}[1]{\EM{\xt{#1}}}
 
@@ -227,7 +226,7 @@
 \newcommand{\SP}{\hspace{.5cm}}
 \newcommand{\SPP}{\SP\SP}
 
-\newcommand{\kafka}{{\sf KafKa}\xspace}
+\newcommand{\kafka}{{\mathsf{KafKa}}\xspace}
 \newcommand{\src}[1]{\colorbox[gray]{0.89}{$#1$}}
 \newcommand{\dt}[1]{\,\xt{?}#1}
 \newcommand{\consistent}[3]{\EM{#1 \vdash #2 ~\sim~ #3}}

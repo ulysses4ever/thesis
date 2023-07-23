@@ -1,4 +1,8 @@
-% Core package
+% *********************************************************************************************
+%
+%              Core package
+%
+% *********************************************************************************************
 \usepackage[
   drafting=false,           % print version information on the bottom of the pages
   linedheaders=true,        % chapter headers will have line above and beneath
@@ -26,9 +30,14 @@
     \end{minipage}%
 }
 
-% ****************************************************************************************************
+% \DeclareRobustCommand{\spacedallcaps}[1]{\textls[160]{\MakeTextUppercase{#1}}}
+% \DeclareRobustCommand{\spacedlowsmallcaps}[1]{\textls[80]{\scshape\MakeTextLowercase{#1}}}
+
+% *********************************************************************************************
+%
 %              Personal data
-% ****************************************************************************************************
+%
+% *********************************************************************************************
 \newcommand{\myTitle}{Type Stability in Julia}
 \newcommand{\mySubtitle}{A Simple and Efficient Optimization Technique}
 \newcommand{\myKws}{JIT, Julia, multiple dispatch, compiler optimizations, devirtualization}
@@ -42,7 +51,9 @@
 
 
 % ********************************************************************
+%
 %        Various Convenience Packages
+%
 % ********************************************************************
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -61,7 +72,9 @@
 
 
 % ********************************************************************
+%
 %        Bibliography
+%
 % ********************************************************************
 \usepackage[
   %backend=biber,bibencoding=utf8, %instead of bibtex
@@ -81,7 +94,9 @@
 
 
 % ********************************************************************
+%
 % Fine-tune hyperreferences (hyperref should be called last)
+%
 % ********************************************************************
 \hypersetup{%
   %draft, % hyperref's draft mode, for printing see below
@@ -103,9 +118,12 @@
   pdfproducer={LaTeX with hyperref and classicthesis}%
 }
 
-% ****************************************************************************************************
+% *********************************************************************************************
+%
 %               Setup code listings
-% ****************************************************************************************************
+%
+% *********************************************************************************************
+
 \usepackage{style/julia}
 \usepackage{mathpartir,listings}
 \lstdefinelanguage{Jules}{
@@ -129,3 +147,15 @@
 
 \newcommand{\code}[1]{{\ttfamily #1}\xspace}
 \renewcommand{\c}[1]{\lstinline[language=Julia]!#1!\xspace}
+
+% *********************************************************************************************
+%
+%               Page Headings
+%
+% *********************************************************************************************
+
+% \manualmark
+% \markboth{\spacedlowsmallcaps{\contentsname}}{\spacedlowsmallcaps{\contentsname}}
+\automark[section]{chapter}
+% \renewcommand{\chaptermark}[1]{\markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}}
+% \renewcommand{\sectionmark}[1]{\markright{\textsc{\thesection}\enspace\spacedlowsmallcaps{#1}}}

@@ -1,13 +1,16 @@
 % !TEX root = ./main.tex
 \RequirePackage{silence} % :-\
-% \WarningFilter{scrreprt}{Usage of package `titlesec'}
-% \WarningFilter{scrreprt}{Activating an ugly workaround}
-\WarningFilter{titlesec}{Non standard sectioning command}
-\documentclass[oneside,openright,titlepage,numbers=noenddot,%1headlines,
+\WarningFilter{scrreprt}{Usage of package `titlesec'}
+\WarningFilter{scrreprt}{Usage of package `tocloft'}
+% \WarningFilter{titlesec}{Non standard sectioning command}
+\documentclass[oneside,openright,titlepage,numbers=noenddot,
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,paper=a4,fontsize=11pt,
 dvipsnames
 ]{scrreprt}
+% \documentclass[%
+% a4paper,11pt,
+% ]{extreport}
 
 \input{preamble}
 
@@ -31,7 +34,7 @@ dvipsnames
 
 \input{biblio}
 
-\input{appendix}
+% \input{appendix}
 
 \end{document}
 
