@@ -1,15 +1,15 @@
-all: artem
+all: build
 
 clean:
 	rm -rf *.log *.aux *.bbl *.blg *~
 
-artem:
+build:
 	latexmk -pdf main.tex
-artem_fast:
+build_fast:
 	pdflatex -interaction=nonstopmode main.tex
-artem_pp:
+build_pp:
 	pplatex -interaction=nonstopmode main.tex
-artem_clean:
+build_clean:
 	latexmk -c
 
 gen_appx:
