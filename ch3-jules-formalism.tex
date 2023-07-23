@@ -1,6 +1,5 @@
 \chapter{Jules: Formalizing Stability and Groundedness}\label{sec:jules}
 
-\MODIFY{
 To simplify reasoning about type stability and groundedness, we first
 define \jules, an abstract machine that provides an idealized version of
 Julia's intermediate representation (IR) and compilation model.
@@ -14,9 +13,8 @@ to optimize it. While Julia's actual type inference algorithm
 is quite complex, its implementation is not relevant for understanding
 our properties of interest; thus, \jules abstracts over type inference
 and uses it as a black box.
-}
 
-\begin{figure}[!h]
+\begin{figure}[h]
   \includegraphics[width=1.1\columnwidth]{figs/compile.pdf}
   \caption{Compilation from Julia to \jules}\label{comp}
   \Description{Julia source code translated to Jules; one function is further compiled
@@ -76,31 +74,30 @@ in \ol\ty (starting from 0), \get\j\k is the $k$-th field of \v\j, and
 \idx\mtbl{\msig\m{\ol\ty}} indexes \mtbl by method signature where \m denotes
 method name and \ol\ty denotes argument types.
 
-\begin{figure}[!h]\small
-\begin{tabular}{lcl}
+\begin{figure}[!h]\small\centering
 \begin{tabular}{llll}
 \ty &::=& & type \\
-    & | & \Ty  & \it concrete type \\
-    & | & \aty & \it abstract type \\
+    & | & \Ty  & \itshape concrete type \\
+    & | & \aty & \itshape abstract type \\
 \\
 \tytbl &::=&  & type table \\
 &&      $\left(\ \ \msig\Ty{\ol\ty} ~<:~ \aty \ \ \right)\!*$&\\
 \mtbl&::=&  & {method table}\\
 &&
   $\left(\ \ \langle \meth\m{\ol{\ty'}}{\ol{\v\j}}\ol\st,\ \ol{\ty}\rangle \ \ \right)\!*$\\
-\end{tabular}
-&\quad&
-\begin{tabular}{ll@{~}ll}
+%\end{tabular}
+%
+%\begin{tabular}{ll@{~}ll}
 \st &::=& & instruction\\
-    & | & $\ass\i\p$ &\it int. assignment\\
-    & | & $\ass\i{\v\j}$ &\it reg. transfer\\
-    & | & $\ass\i{\construct\Ty{\ol{\v\k}}}$ & \it allocation\\
-    & | & $\ass\i{\get\j\k}$ & \it field access\\
-    & | & $\cond\i\j{\call\m{\ol{\v\k}}}{\v\l}$&\it dispatched call\\
-    & | & $\cond\i\j{\direct\m{\ol{\Ty}}{\ol{\v\k}}}{\v\l}$&\it direct call\\
+    & | & $\ass\i\p$ &\itshape int. assignment\\
+    & | & $\ass\i{\v\j}$ &\itshape reg. transfer\\
+    & | & $\ass\i{\construct\Ty{\ol{\v\k}}}$ & \itshape allocation\\
+    & | & $\ass\i{\get\j\k}$ & \itshape field access\\
+    & | & $\cond\i\j{\call\m{\ol{\v\k}}}{\v\l}$&\itshape dispatched call\\
+    & | & $\cond\i\j{\direct\m{\ol{\Ty}}{\ol{\v\k}}}{\v\l}$&\itshape direct call\\
 \multicolumn{3}{l}{$i \in \mathbb{N},\ \p \in \mathbb{Z}$} & \\
 \end{tabular}
-\end{tabular}\caption{Syntax of \jules}\label{syntax}
+\caption{Syntax of \jules}\label{syntax}
 \Description{Syntax of Jules}
 \end{figure}
 
