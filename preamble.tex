@@ -30,6 +30,20 @@
     \end{minipage}%
 }
 
+% I don't get smallcaps in TOC bydefault, see discusion in here:
+% https://bitbucket.org/amiede/classicthesis/issues/203/not-getting-small-caps-for-chapter-names
+% One known workarounddoesn't work:
+%
+% \newcommand{\tocFixedChapter}[1]{\chapter{\spacedlowsmallcaps{#1}}}
+% \renewcommand{\tocEntry}[1]{\protect\numberline{}{\spacedlowsmallcaps{#1}}}
+%
+% Another one does:
+\renewcommand{\cftchapfont}{\spacedlowsmallcaps}
+
+
+% classicthesis doesn't support compiling with plain `latex`,
+% which is used in pplatex (a pretty printer). These two definitions below make
+% it happy but aren't compatible with pdflatex 8|
 % \DeclareRobustCommand{\spacedallcaps}[1]{\textls[160]{\MakeTextUppercase{#1}}}
 % \DeclareRobustCommand{\spacedlowsmallcaps}[1]{\textls[80]{\scshape\MakeTextLowercase{#1}}}
 
