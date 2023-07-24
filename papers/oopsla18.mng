@@ -1,0 +1,2203 @@
+% -*-LaTeX-*-
+\documentclass[acmsmall,screen]{acmart}
+%\settopmatter{printfolios=true,printccs=false,printacmref=false}
+%\renewcommand\footnotetextcopyrightpermission[1]{}
+
+
+%FZ: FIXME
+\setcopyright{rightsretained}
+\acmPrice{}
+\acmDOI{10.1145/3276483}
+\acmYear{2018}
+\copyrightyear{2018}
+\acmJournal{PACMPL}
+\acmVolume{2}
+\acmNumber{OOPSLA}
+\acmArticle{113}
+\acmMonth{11}
+
+% TODO BADGE
+% \acmBadgeR[http://ctuning.org/ae/ppopp2016.html]{ae-logo}
+
+\ccsdesc[500]{Software and its engineering~Data types and structures}
+\ccsdesc[100]{Software and its engineering~Semantics}
+
+\bibliographystyle{ACM-Reference-Format}
+\citestyle{acmauthoryear}   %% For author/year citations
+%% LambdaJulia-related packages
+\usepackage{booktabs, graphicx, array} 
+\usepackage{adjustbox}
+\usepackage{subcaption}
+\usepackage{julia}
+\usepackage{wasysym} % pretty circles for the table
+\def\lstbasicfontL{\color{jlstring}\ttfamily\small\selectfont}
+\newcommand{\code}[1]{\lstinline[basicstyle=\lstbasicfontL]|#1|\xspace}
+\newcommand{\gbar}{\ \ |\ \ }  % vertical bar for grammar definitions
+\usepackage{supertabular}
+\usepackage{xspace,wrapfig}
+\usepackage{enumitem}
+\include{lambdajulia}
+\usepackage{ottlayout}
+\ottstyledefaults{showruleschema=no,showcomment=no,rulelayout=nobreaks,premisenamelayout=topright,numberpremises=no}
+\include{lambdajulia-override}
+\usepackage{longtable}
+\usepackage{relsize}
+
+\newcommand{\FZ}[1]{\textbf{FZ says: #1}}
+\newcommand{\AP}[1]{\textbf{AP says: #1}}
+\newcommand{\JB}[1]{\textbf{JB note: #1}}
+\newcommand{\K}[1]{{\small\tt #1}\xspace}
+\newcommand{\LJCODE}[1]{{\small\tt #1}}
+\newcommand{\Julia}{Julia~0.6.2\xspace}
+\newcommand{\JuliaDev}{Julia~0.7dev\xspace}
+
+%validation numbers
+\newcommand{\LJVSubTot}{$6,\!014,\!476$\xspace}
+\newcommand{\LJVTrivSubTot}{$1,\!597,\!871$\xspace}
+\newcommand{\LJVAllSubTot}{$7,\!612,\!469$\xspace}
+\newcommand{\LJVSubFailTot}{122\xspace}
+\newcommand{\LJVSubFailJuliaBug}{120\xspace}
+\newcommand{\LJVSubFailDiscrep}{2\xspace}
+
+
+
+\keywords{Multiple Dispatch, Subtyping}
+
+\begin{document}
+\title{Julia Subtyping: A Rational Reconstruction}
+
+\author{Francesco Zappa Nardelli}\affiliation{Inria\country{France}}\affiliation{Northeastern University\country{USA}}
+\author{Julia Belyakova}\affiliation{Czech Technical University in Prague\country{Czechia}}
+\author{Artem Pelenitsyn}\affiliation{Czech Technical University in Prague\country{Czechia}}
+\author{Benjamin Chung}\affiliation{Northeastern University\country{USA}}
+\author{Jeff Bezanson}\affiliation{Julia Computing\country{USA}}
+\author{Jan Vitek}\affiliation{Northeastern
+  University\country{USA}}\affiliation{Czech Technical University in Prague\country{Czechia}}
+\authorsaddresses{}
+
+\begin{abstract}
+  Programming languages that support multiple dispatch rely on an expressive
+  notion of subtyping to specify method applicability. In these languages,
+  type annotations on method declarations are used to select, out of a
+  potentially large set of methods, the one that is most appropriate for a
+  particular tuple of arguments.  Julia is a language for scientific
+  computing built around multiple dispatch and an expressive subtyping
+  relation.  This paper provides the first formal definition of
+  Julia's subtype relation and motivates its design. We validate our
+  specification empirically with an implementation of our definition that we
+  compare against the existing Julia implementation on a collection of
+  real-world programs. Our subtype implementation differs on \LJVSubFailTot
+  subtype tests out of \LJVSubTot. The first \LJVSubFailJuliaBug differences 
+  are due to a bug in Julia that was fixed once reported;
+  the remaining \LJVSubFailDiscrep are under discussion.
+\end{abstract}
+
+\maketitle
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10011007.10011006.10011008.10011024.10011028</concept_id>
+<concept_desc>Software and its engineering~Data types and structures</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10011007.10011006.10011039.10011311</concept_id>
+<concept_desc>Software and its engineering~Semantics</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Software and its engineering~Data types and structures}
+\ccsdesc[500]{Software and its engineering~Semantics}
+
+
+
+\renewcommand{\shortauthors}{F.\ Zappa Nardelli, J.\ Belyakova,
+  A.\ Pelenitsyn, B.\ Chung, J.\ Bezanson, J.\ Vitek}
+
+\section{Introduction}\label{s:introduction}
+
+Multiple dispatch is used in languages such as CLOS~\cite{Gabriel87},
+Perl~\cite{Randal03}, R~\cite{Chambers14}, Fortress~\cite{Allen11}, and
+Julia~\cite{Bezanson15}. It allows programmers to overload a generic
+function with multiple methods that implement the function for different
+type signatures; invocation of the function is resolved at run-time
+depending on the 
+
+\begin{wrapfigure}{r}{7.3cm}
+\vspace{-6mm}
+\begin{lstlisting}[linewidth=7.3cm]
+ *(x::Number, r::Range)  = range(x*first(r),...)
+ *(x::Number, y::Number) = *(promote(x,y)...)
+ *(x::T, y::T) 
+   where T <: Union{Signed,Unsigned} =
+     mul_int(x,y)
+\end{lstlisting}
+\vspace{-6mm}
+\end{wrapfigure}
+
+\noindent
+actual types of the arguments.  The expressive power of multiple dispatch
+stems from the way it constrains the applicability of a method to a
+particular set of values.  With it, programmers can write code that is
+concise and clear, as special cases, such as optimized versions of matrix
+multiplication, can be relegated to dedicated methods.  The inset shows
+three of the 181 methods implementing multiplication in Julia's standard
+library.  The first method implements the case where a range is multiplied
+by a number. The second method is invoked on generic numbers: it explicitly
+converts the arguments to a common type via the \code{promote} function.
+The last method invokes native multiplication; its signature has a type
+variable \code{T} that can be instantiated to any integer type.
+
+For programmers, understanding multiple dispatch requires reasoning about
+the subtype relation.  Consider the infix call \code{3 * \ x}. If \code{x}
+is bound to a float, only the second method is applicable.  If, instead,
+\code{x} is an integer, then two methods are applicable and Julia's runtime
+must identify the \emph{most specific} one.  Now, consider  \code{3 *
+  \ 4}, with argument type \([[Tuple{Int,Int}]]\).  The signature of the
+first method is \([[Tuple{Number,Range}]]\).  Tuples are covariant, so the
+runtime checks that \([[Int]] [[<:]] [[Number]]\) and \([[Int ]][[ <:]][[
+    Range]]\).  Integers are subtypes of numbers, but not of ranges,
+so the first method is not applicable, but the second is, as
+%
+\([[Tuple{Int,Int} <: Tuple{Number,Number}]]\).
+%%
+The third method is also applicable, as
+%
+\([[Tuple{Int,Int}]]\) is a subtype of  \code{Tuple\{T,T\}} \code{where T<:Union\{Signed,}\code{Unsigned\}}; 
+%
+because there \emph{exists} an instance of the variable
+\code{T} (namely \code{Int}) for which subtyping holds.  As multiple methods
+are applicable, subtyping is used to compare their signatures; it holds
+that \([[AA Tuple{T,T} where T<:Union{Signed,Unsigned}]]\) is a subtype
+of \([[Tuple{Number,Number}]]\) because this holds \emph{for all}
+instances of the variable~\code{T}.  The call will be dispatched, as
+expected, to the third method.
+
+Subtyping can surprise programmers.  For instance, is type
+\([[Tuple{String,Int}]]\) a subtype of type \([[Tuple{Union{Bool,T},T} where
+    T]]\)?  One could choose to instantiate \code{T} with
+\([[Union{String,Int}]]\), and, in a system with union and tuple types such
+as~\cite{Vouillon04}, subtyping would hold.  In Julia this is not the case
+because of the \emph{diagonal rule}.  This rule requires that if a type
+variable appears more than once in covariant position, it can be
+instantiated only with a \emph{concrete} type (e.g.\ \([[Int]]\)). A
+\([[Union]]\)\, is not concrete and thus cannot be used to instantiate
+\code{T}.  The diagonal rule is used to restrict applicability of methods to
+values that have the same representation, which enables expressing common
+scientific computing idioms: it correctly prevents \code{3 * \ 0x4}, whose
+type is \code{Tuple\{Int,UInt8\}}, to dispatch to the third method
+above. However, the rule's interaction with other features can be complex.
+Consider
+%
+\code{Tuple\{Bool,Int\}}; it is a subtype of \([[Tuple{Union{Bool,T},T}
+    where T]]\) because \code{T} can be instantiated to \code{Int} and the
+union type matches with \code{Bool}, which lets us build a derivation.
+
+
+
+
+Our goal is to provide an account of Julia's subtype relation that allows
+programmers to reason about their code, Julia implementors to evaluate the
+correctness of the compiler, and language designers to study an interesting
+point in the language design space. This has proved to be surprisingly
+difficult  for the following three reasons.  \emph{Dynamic typing:} Julia
+does not have a static
+\begin{wrapfigure}{r}{7cm}
+%\vspace{-4mm}
+\begin{lstlisting}[language=C,linewidth=7cm,aboveskip=-0.25cm,belowskip=-0.25cm]
+int forall_exists_subtype(jl_value_t *x,
+  jl_value_t *y, jl_stenv_t *e, int param) {
+ save_env(e,&saved,&se);
+ memset(e->Lunions.stack, 0,
+   sizeof(e->Lunions.stack));
+ int lastset = 0; int sub;
+ while (1) {
+   sub = exists_subtype(x,y,e,saved,&se,param);
+   int set = e->Lunions.more;
+   if (!sub || !set) break;
+   save_env(e, &saved, &se);
+   for (int i = set; i <= lastset; i++)
+     statestack_set(&e->Lunions, i, 0);
+   lastset = set - 1;
+   statestack_set(&e->Lunions, lastset, 1);
+ }
+ free(se.buf);
+ return sub;
+}
+\end{lstlisting}
+\caption{Julia {\tt subtype.c} extracted verbatim.}\label{y}
+%\vspace{-2mm}
+\end{wrapfigure}
+ type system, so subtyping is only needed for multiple
+dispatch.
+Properties one would expect from such a relation
+may not
+hold. For instance, while working on this paper we discovered that, in the
+production implementation of subtyping, reflexivity did not hold. It was an
+implementation mistake that was promptly fixed, but it is telling that it
+went undiscovered.  \emph{No formal specification:} apart from a partial
+description in prose in~\citet{Bezanson15}, the only specification of
+subtyping is 2,800 lines of heavily optimized, undocumented C code (a
+snippet is shown in Fig.~\ref{y} for your enjoyment).
+Inspection of Julia's
+2017 commit log shows that only three out of over 600 contributors made
+substantial edits to \K{subtype.c}, the file that implements it.  Anecdotal
+evidence, based on discussion with users, suggests that the subtype relation
+is perceived as a black box that behaves mysteriously.
+
+%
+
+\newcommand{\YES}{$\CIRCLE$}
+\newcommand{\NO}{$\Circle$}
+\newcommand{\PART}{$\LEFTcircle$}
+\newcommand{\STAR}{$\star$}
+\newcommand{\SUP}[1]{\textsuperscript{#1}}
+\newcommand{\ALG}[2]{\phantom{#2}#1#2}
+\newcolumntype{R}[2]{%
+    >{\adjustbox{angle=#1,lap=\width-(#2)}\bgroup}%
+    l%
+    <{\egroup}%
+}
+\newcommand*\rot{\multicolumn{1}{R{55}{2.3em}}}% no optional argument here, please!
+\begin{table}[!t]
+\caption{Julia subtyping compared.}\label{subtbl}
+\small\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lccccccccc@{\hskip .2cm}}
+                     & \rot{\small[Chambers ea. 94]\nocite{Chambers94}}
+                     & \rot{[Bourdoncle ea. 97]\nocite{Bourdoncle97}}
+                     & \rot{[Litvinov 03]\nocite{Litvinov03}}
+                     & \rot{[Vouillon 04]\nocite{Vouillon04}}
+                     & \rot{[Frisch ea. 08]\nocite{Frisch08}}
+                     & \rot{[Cameron ea. 08]\nocite{Cameron08}}
+                     & \rot{[Smith ea. 08]\nocite{Smith08}}
+                     & \rot{[Allen ea. 11]\nocite{Allen11}}
+                     & \rot{Julia}  \\\midrule
+
+Nominal Subtyping    & \YES   & \PART & \YES  &  \NO   &  \NO   &  \YES  &  \YES  & \YES  & \YES   \\
+Invariant Type Constructors%
+                     & \NO    & \YES  & \YES  &  \NO   &  \PART &  \YES  &  \YES  & \YES  & \YES   \\
+Covariant Type Constructors%
+                     & \ALG{\PART}{\SUP{2}}%
+                              & \YES  & \YES  &  \YES  & \ALG{\PART}{\SUP{4}}%
+                                                                & \NO    & \NO    & \NO   & \ALG{\PART}{\SUP{4}} \\
+Explicit Union Types & \YES   & \ALG{\PART}{\SUP{3}}%
+                                      & \YES  &  \YES  & \YES   &  \NO   &  \YES  & \YES  & \YES   \\
+Distributivity\SUP{1}& \NO    & \NO   & \NO   &  \NO   & \YES   &  \NO   &  \NO   & \NO   & \YES   \\
+Bounded Existential Types%
+                     & \NO    & \NO   & \NO   &  \NO   &  \NO   &  \YES  & \PART  & \PART & \YES   \\
+Diagonal Rule        & \NO    & \NO   & \NO   &  \NO   &  \NO   &  \NO   &  \NO   & \NO   & \YES   \\
+\bottomrule
+\end{tabular}
+
+\begin{tabular}{p{12.5cm}}
+\hspace{5mm}\footnotesize
+\SUP{(1)} Union/tuple or union/intersection distributivity visible
+to users.\\[-1mm]
+\hspace{5mm}\footnotesize
+\SUP{(2)} Built-in covariant vectors used internally for arguments but not
+available to users.\\[-1mm]
+\hspace{5mm}\footnotesize
+\SUP{(3)} Constraints on type parameters seen as union/intersection types.\\[-1mm]
+\hspace{5mm}\footnotesize
+\SUP{(4)} Only built-in covariant tuples.
+\end{tabular}
+\end{table}
+
+\noindent \emph{Unique combination of features:} Julia's type language features an
+original combination of \emph{nominal single subtyping}, \emph{union types},
+\emph{existential types}, \emph{covariant tuples}, \emph{invariant parametric
+  datatypes}, \emph{distributivity}, and \emph{singleton types}, as well as
+the \emph{diagonal rule}. One source of inspiration for the design of
+subtyping in Julia was semantic subtyping~\cite{Frisch02,Frisch08}, but
+practical considerations caused the language to evolve in a unique
+direction. Table~\ref{subtbl} illustrates Julia's unique combination of
+features; further discussion is in the related work section.
+
+Given the absence of a denotational model of subtyping, it was clear from
+the outset that we would not be able to prove our specification
+correct. Instead, we provide an implementation of the subtype relation that
+mirrors the specification, and then validate empirically that our
+specification-based implementation agrees with the existing implementation.
+Our contributions are the following:
+\begin{enumerate}
+\item The first specification of Julia subtyping, covering all features of
+  Julia except \code{Vararg} (omitted as it would decrease readability for
+  little conceptual benefit).
+\item An implementation of our specification and a validation of that
+  implementation against the reference implementation on a suite of
+  real-world packages.
+\item Identification of problems with Julia's design and implementation.
+  Four bugs have been fixed and one proposal was accepted for the next
+  revision of Julia.
+\end{enumerate}    
+
+\paragraph{Non-results.} We do not provide a proof of soundness, as there is no 
+formal semantics of Julia. We do not compare performance between our
+implementation and the Julia subtype code as our code is written so as to
+mirror our rules one to one, whereas the Julia implementation is written in
+C and is heavily optimized. We do not attempt to provide a ``better''
+definition for subtyping; we leave that to future work.  And, lastly, we do
+not prove decidability of Julia's subtyping or of its underlying algorithm.
+
+\paragraph{Artifact.} Our implementation is available from the project's
+page~\cite{lambdajuliawebpage}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Background: Julia}
+
+Julia is a language designed for scientific computing, released in 2012,
+which has achieved a degree of success --- as evidenced by over 6,000
+independently developed packages hosted on GitHub.  Julia is a high-level,
+dynamic, memory-safe language without a type system but with user-defined
+type declarations and a rich type annotation sublanguage.  Its design,
+therefore, reflects the tension between supporting dynamic features and
+ensuring efficient native code generation.  As with other dynamic languages,
+the implementation executes any grammatically correct program and can load
+new code with \code{eval}.  This is challenging for a compiler, yet
+Julia's LLVM-based back-end can be competitive with C~\cite{BezansonEKS17}.
+
+\begin{wrapfigure}{r}{4cm}
+\vspace{-6mm}
+\begin{lstlisting}[linewidth=4cm]
+f(x) = x + 1
+f(x::String) = x * 3
+\end{lstlisting}
+\vspace{-6mm}
+\end{wrapfigure}
+
+While Julia has a rich type annotation language, we emphasize its lack of a
+static type system. The first method for function \code{f}, shown here, does
+not have type annotations on its argument and will work as long as there is
+an addition method for the actual value of \code{x}. The second method is
+specific to strings, but invocations will fail at run-time unless a
+multiplication method is provided between a string and an integer.  There is
+no notion of soundness in Julia, even for fully type-annotated programs. If
+a method call does not have a most specific method, a runtime error will be
+reported. Ambiguity in dispatch is always resolved dynamically.
+
+Julia types are \emph{nominal}: the hierarchical relationship between types
+is specified explicitly by the programmer rather than inferred from their
+structure.  This enables a function to behave differently on different types
+even if they have the same representation.  Julia types are
+\emph{parametric}: user-defined types can be parametrized by other types
+(and by values of primitive types as integers and booleans).
+
+\paragraph{Top and Bottom.} The abstract type \code{Any} is the
+type of all values and is the default when type annotations are omitted.
+The empty union \code{Union\{\}} is a subtype of all types; it is not
+inhabited by any value.  Unlike many common languages, Julia does not have a
+null value or a null type that is a subtype of all types.
+
+\paragraph{Datatypes.} 
+Datatypes can be \emph{abstract} or \emph{concrete}. Abstract datatypes may
+have subtypes but cannot have fields. Concrete datatypes have fields but
+cannot have declared subtypes.  Every value is an instance of a concrete
+\code{DataType} that has a size, storage layout, supertype (\code{Any} if
+not otherwise declared), and, optionally, field names.  Consider
+the inset definitions.
+
+\begin{wrapfigure}{r}{8.2cm}
+\vspace{-6mm}
+\begin{lstlisting}[linewidth=8.3cm]
+  abstract  type   Integer <: Real      end
+  primitive type   Bool    <: Integer 8 end
+  mutable   struct PointRB <: Any  x::Real y::Bool end
+\end{lstlisting}
+\vspace{-6mm}
+\end{wrapfigure}
+
+\noindent The first declaration introduces \code{Integer} as a subtype of
+\code{Real}. The type is abstract; as such it cannot be instantiated.  The
+second declaration introduces a concrete, primitive, type for boolean values
+and specifies that its size is 8 bits; this type cannot be further subtyped.
+The last declaration introduces a concrete, mutable structure \code{PointRB} with two
+fields, \code{x} of abstract type \code{Real} and \code{y} of concrete type
+\code{Bool}.  Abstract types are always stored as references, while concrete
+types are unboxed.
+
+
+\paragraph{Parametric Datatypes.}
+The following defines an immutable, parametrized, concrete type,
+
+\begin{wrapfigure}{r}{6cm}
+\vspace{-7mm}
+\begin{lstlisting}[linewidth=6cm]
+  struct Rational{T<:Integer} <: Real
+    num::T
+    den::T
+  end
+\end{lstlisting}
+\vspace{-4mm}
+\end{wrapfigure}
+
+
+\noindent
+\code{Rational}, with no argument, is a valid type, containing all instances
+\code{Rational\{Int\}}, \code{Rational\{UInt\}}, \code{Rational\{Int8\}},
+etc.  Thus, the following holds: \([[Rational{Int} <: Rational]]\).  Type
+parameters are \emph{invariant}, thus the following does not hold:
+
+\noindent \([[Rational{Int} <: Rational{Integer}]]\).  This restriction stems from
+practical considerations: the memory layout of abstract types
+(\code{Integer}) and concrete types (\code{Int}) is different and can impact
+the representation of the parametric type.  In a type declaration,
+parameters can be used to instantiate the supertype.  This allows the
+declaration of an \code{AbstractVector} as a mono-dimensional
+\code{AbstractArray} of values of type \code{T}:
+\newpage
+\begin{lstlisting}
+  abstract type AbstractVector{T} <: AbstractArray{T,1} end
+\end{lstlisting}
+
+
+\paragraph{Tuple types.}
+Tuples are an abstraction of the arguments of a function; a tuple type is a
+parametrized immutable type where each parameter is the type of one field.
+Tuple types may have any number of parameters, and they are \emph{covariant}
+in their parameters: \code{Tuple\{Int\}} is a subtype of \code{Tuple\{Any\}}.
+\code{Tuple\{Any\}} is considered an abstract type; tuple types are only
+concrete if their parameters are.
+
+\paragraph{Union types.}
+A union is an abstract type which includes, as values, all instances of any
+of its argument types. Thus the type \code{Union\{Integer, AbstractString\}}
+denotes any values from the set of \code{Integer} and \code{AbstractString}
+values.
+
+\paragraph{UnionAll.} A parametric type without arguments like \code{Rational}
+acts as a supertype of all its instances (\code{Rational\{Int\}} etc.)
+because it is a different kind of type called a \emph{UnionAll} type.  Julia
+documentation describes UnionAll types as ``the iterated union of types for
+all values of some parameter''; a more accurate way to write such type is
+\([[Rational{T} where Union{}<:T<:Any]]\), meaning all values whose type is
+\code{Rational\{T\}} for some value of \code{T}.  UnionAll types correspond
+to bounded existential types in the literature, and a more usual notation
+for the type above would be $\exists$\,\code{T.Rational\{T\}}. Julia does not have explicit
+  \emph{pack/unpack} operations; UnionAll types are  abstract.
+Each \code{where} introduces a single type variable. The combination of
+parametric and existential types is expressive: the type of 1-dimensional
+arrays can be simply specified by
+%
+\([[Array{T,1} where T]]\).  
+%
+Type variable bounds can refer to outer type variables. For example, 
+%
+\([[AA AA Tuple{T,Array{S}}  where S<:AbstractArray{T} where T<:Real]]\)
+%
+refers to 2-tuples whose first element is some \code{Real}, and whose second
+element is an \code{Array} of any kind of array whose element type contains
+the type of the first tuple element.  The \code{where} keyword itself can be
+nested. Consider the types
+\code{Array\{Array\{T,1\} \ \ where T, 1\}} and 
+\([[Array{Array{T,1}, 1}  where T]]\).
+The former defines a 1-dimensional array of 1-dimensional arrays; each of
+the inner arrays consists of objects of the same type, but this type may
+vary from one inner array to the next. The latter type instead defines
+a 1-dimensional array of 1-dimensional arrays all of whose inner arrays must
+have the same type.  UnionAll types can be explicitly instantiated
+with the type application syntax \([[(t where T){t'}]]\); partial
+instantiation is supported, and, for instance, \([[Array{Int}]]\) denotes
+arrays of
+integers of arbitrary dimension.
+
+\paragraph{Singleton Types.}
+There are two special abstract parametric types.  For an
+arbitrary type \([[t]]\), \([[Type{t}]]\) defines a type whose
+only instance is \([[t]]\) itself; similarly \code{Val\{3\}} is used to
+create the singleton type for integer \code 3.
+
+\section{Subtyping in Julia}\label{s:sub}
+
+We focus on the following grammar of types, denoted by \([[t]]\):
+%
+\[
+\begin{array}{rl}
+  t  & ::= \  [[Any]]  \gbar [[Union{t1,..,tn}]]
+  \gbar [[Tuple{a1,..,an}]]
+  \gbar [[name{a1,..,an}]] \gbar [[ t where t1 <: T <: t2 ]] \\[1mm]
+  & \ \ \ \gbar   [[T]] \gbar [[Type{a}]] \gbar [[DataType]] \gbar [[Union]] \gbar [[UnionAll]] \\[1mm]
+a  & ::= \  [[t]]      \gbar [[v]]
+\end{array}
+\]
+%
+
+\noindent The variable \([[v]]\) ranges over \emph{plain-bit} values:
+in addition to types, plain-bit values can be used to instantiate all
+parametric types.
+Our only omission is the \([[Vararg]]\) construct,
+discussed at the end of this section.
+%
+We follow Julia's conventions.  We write type variables in
+big-caps.  Given \([[ t where t1 <: T <: t2 ]]\), the
+variable \([[T]]\) binds in the type \([[t]]\), but not in \([[t1]]\)
+or \([[t2]]\).  We abbreviate with \([[Bottom]]\)  the empty union type
+\code{Union\{\}}, the
+subtype of all types.  In the \([[where]]\) construct, omitted lower
+bounds (resp.\ upper bounds) 
+for type variables default to \([[Bottom]]\) (resp. \([[Any]]\));
+the notation \([[t where T]]\) is thus a shorthand for
+\([[t where Bottom <: T <: Any]]\).  We also remove empty
+applications and denote \([[name{}]]\) simply with \([[name]]\).
+%
+We assume that all user-defined types are recorded in a global environment
+\([[tds]]\) which for each type stores its name, attribute, type parameters
+with bounds, and the declared supertype.  A supertype can refer to the
+parameters of the type being defined.  Searching a type name,
+e.g.\ \([[name]]\) in \([[tds]]\), returns either its definition, denoted:
+\[ [[tds |=| attr name{t1<:T1<:t1',..,tm<:Tm<:tm' } <: t'']] \] or
+fails.  The attribute, denoted \([[attr]]\), records whether the defined type is
+\([[abstract]]\) or \([[concrete]]\).  When not relevant,
+we omit the lower and upper bounds of the binding type
+variables.
+
+Julia's frontend simplifies types written by the programmer e.g.\ by
+removing redundant unions or parameters.  We choose to formalize the
+subtype relation over the source syntax of types, rather than the internal
+Julia representation.  Our approach enables reasoning about the type
+simplification phase itself: it is arguable that, to prevent unexpected
+behaviors, all frontend type transformations ought to be correct with
+respect to the type equivalence induced by the subtype relation.  For
+instance this allowed us to identify a surprising behavior,
+discussed in Sec.~\ref{s:juliabugs}.
+
+
+Julia defines a \([[typeof]]\){} function that returns the concrete
+type of a value.  Since types are themselves values, it is legitimate
+to invoke \([[typeof]]\) on them, and the types \([[DataType]]\),
+\([[Union]]\)\,{}, and \([[UnionAll]]\){} play the role of kinds.
+Intuitively, \([[typeof(t)]]\){} analyses the top-level constructor of
+\([[t]]\) and returns \([[UnionAll]]\) if it is a \([[where]]\)
+construct, \([[Union]]\)\, if it is a \([[Union]]\)\, construct, and
+\([[DataType]]\) otherwise.  The \([[typeof]]\) function plays a role
+in the subtyping rule for the \([[Type{a}]]\) constructor, and we
+additionally rely on it to rule out badly
+formed types.  A precise formalization of \([[typeof]]\) is reported
+in Appendix~\ref{s:apptypeof}.
+
+
+
+\subsection{Understanding Subtyping}
+\label{s:sub-understanding}
+
+The literature never studied a subtype system with all the features of
+Julia. Unexpected, subtle, interactions between existential types and
+distributivity of union/tuple types forced us to depart from established
+approaches.  We give an informal overview
+of the subtype relation, pointing out where, and why, standard rules fall short.
+
+
+\paragraph{Building intuition.} 
+Two subtyping rules follow naturally from Julia's design: parametric types
+are \emph{invariant} in their parameters, while tuples are
+\emph{covariant}. The former follows immediately from Julia's memory
+representation of values.  An array of dissimilar values is represented as a
+list of pointers to the boxed values, under type \([[Vector{Any}]]\).
+However, if all the values are primitive, then an unboxed representation is
+used.  For instance, a vector of 32-bit integers is represented as an array
+of machine integers, under type \([[Vector{Int32}]]\).  It would be wrong to
+treat \([[Vector{Int32}]]\) as a subtype of \([[Vector{Any}]]\), as pointers
+can require more than 32 bits.  This is \emph{incompatible} with a
+semantic subtyping interpretation of the subtype relation~\cite{Frisch02}.
+Invariance of
+type application is enforced via \([[name{t1,..,tn} <: name{t'1,..,t'n}]]\)
+iff forall \([[i]], [[ti<:t'i]] \text{ and } [[t'i<:ti]]\).
+Tuples are an abstraction of the arguments of a function: covariance
+enables dispatch to succeed when the function arguments are a subtype
+of a more general function signature.  Covariance of tuple types is
+usually enforced via \([[Tuple{t1,..,tn} <: Tuple{t'1,..,t'n}]] \text{
+  iff forall } [[i]], [[ti<:t'i]]\).
+
+Subtyping union types follows instead the semantic subtyping intuition,
+of~\citet{Vouillon04} or~\citet{Frisch02}.  Subtyping union types is asymmetrical
+but intuitive.  Whenever a union type appears on the left hand side of a
+subtyping judgment, as in \([[Union{t1,..,tn}]] [[<:]] [[t]]\), \emph{all}
+the types \([[t1]]\) .. \([[tn]]\) must be subtypes of \([[t]]\).  In
+contrast, if a union type appears on the right-hand side of a judgment
+instead, as in \([[t]] [[<:]] [[Union{t1,..,tn}]]\), then there needs to be
+only one type \([[ti]]\) in \([[t1]]\) .. \([[tn]]\) that is a supertype of
+\([[t]]\).  Combining the two, a judgment \([[Union{t1,..,tn}]] [[<:]]
+  [[Union{t'1,..,t'n}]]\) thus reads as: \emph{forall} types \([[ti]]\),
+  there \emph{exists} a type \([[t'j]]\) such that \([[ti <: t'j]]\).
+
+These rules are simple in isolation, but their
+interaction with other Julia features is not.
+%In what follows we
+%explore all the issues raised by the interaction of all Julia's
+%type system features, and discuss how they can be handled.
+
+\paragraph{Unions and Tuples.}
+Covariant tuples should be \emph{distributive}
+with respect to unions:
+\[
+[[Tuple{Union{t1,t2}, t}  <:  Union{Tuple{t1,t}, Tuple{t2,t}}]]
+\]
+%
+should hold but it is known since \citet{Vouillon04} that the judgment cannot be derived from the above rules.  The
+rule for tuples does not apply, while decomposing immediately the
+union on the right, picking up either \([[Tuple{t1,t}]]\) or
+\([[Tuple{t2,t}]]\) does not allow to conclude.  Indeed, if a
+derivation commits to an element of a union type in the right-hand
+side before having explored all the (possibly nested) union types in
+the left-hand side, the derivation has effectively performed an
+exist/forall search, rather than a forall/exist one, losing the
+option to choose a different matching type for all the types in the
+union on the left-hand side.
+
+A standard approach, relied upon e.g.\ by the CDuce language,
+solves this conundrum by rewriting types into their
+disjunctive normal form, that is, as unions of intersections of
+literals, \emph{ahead-of-time}.  Rewriting types as top-level unions
+of other types is correct in CDuce semantic model, but it is unsound
+in Julia, due to invariant constructors.  For example, in Julia, the
+type \([[Vector{Union{Int,Bool}}]]\), denoting the set of vectors
+whose elements are integers or booleans, cannot be expressed with a
+top-level union. It would be incorrect to rewrite it as
+\([[Union{Vector{Int}, Vector{Bool}}]]\), the set of vectors whose
+elements are all integers or all booleans.  Despite this, the
+distributivity law above holds in Julia and the subtype relation
+must successfully derive similar judgments.  Julia's implementation
+thus relies on an efficient, but complex and fragile, backtracking
+mechanism to keep the forall/exist ordering of quantifications correct
+independently of the syntactic structure of types.  This algorithm is
+hard to formalize and to reason about.
+
+It is however possible to formalize an exhaustive search on top of the
+aforementioned rules for tuples and unions.  The key intuition is that
+rewriting a \([[Tuple{Union{t1,t2}, t}]]\) type that occurs on the
+left-hand side of a subtyping judgment into the equivalent
+\([[Union{Tuple{t1,t}, Tuple{t2,t}}]]\) has the effect of
+syntactically anticipating the union types (and thus the induced
+forall quantifications) as much as possible in a derivation.
+Similarly, performing the opposite rewriting whenever a \([[Union]]\)
+type occurs on the right-hand side of a subtyping judgment delays the
+existential quantifications.  Care is required to lift, or unlift,
+\([[where]]\) constructs correctly, but by
+adding rules that apply these rewritings
+\emph{dynamically}, while building the derivation tree, we define a
+complete subtype relation on top of the intuitive subtype rules for
+tuples, invariant constructors, and union types above.
+
+\paragraph{UnionAll, environments, and bounds.}
+Julia's type system features bounded existential types, denoted \([[t where
+    t1<:T<:t2]]\), and (confusingly) referred to as \emph{iterated
+  unions} or \emph{UnionAll} types.  Analogously to union types, the subtyping
+rules for bounded existentials must have either a forall or an exist semantics
+according to whether the existential appears on the left or right of
+the subtyping judgment.  So
+%
+\[ [[(t where t1<:T<:t2)]]\ [[<:]]\ [[t']]\]
+%
+is satisfied if \emph{forall} types \([[t3]]\) supertype of \([[t1]]\)
+and subtype of \([[t2]]\) it holds that \([[ t[t3/T] <: t']]\).
+Conversely,
+%
+\[ [[t']]\ [[<:]]\ [[(t where t1<:T<:t2)]]\]
+%
+is satisfied if \emph{there exists} a type \([[t3]]\) supertype of
+\([[t1]]\) and subtype of \([[t2]]\) such that \([[ t[t3/T] <: t']]\).
+The correct quantification of a variable is specified
+ by the position of the \([[where]]\) construct that introduced it,
+ not by where the variable occurs in the judgment.
+Intuitively, when checking if:
+%
+\[ [[Ref{Int} <: Ref{T} where T ]] \]
+%
+the invariance of \([[Ref]]\) will force us to check both \([[Int <:
+    T]]\) and \([[T <: Int]]\).  In both cases, the subtyping check
+must be performed assuming \([[T]]\) has an \emph{exist} semantics;
+in this case both constraints can be satisfied by picking \([[T]]\) to
+be \([[Int]]\).
+
+To keep track of the semantics of each variable, we record them in an
+environment \([[E]]\). A variable \([[T]]\) introduced
+by a \([[where]]\) \emph{on the left} of the subtyping
+judgment is recorded as \([[ T^L_(lb,ub) ]]\), a variable introduced
+on the \emph{right} as \([[ T^R_(lb,ub) ]]\): 
+\textit{lb} and \textit{ub} are the lower bound and upper bound types
+for the variable. The judgments we consider thus have the form \( [[E
+    |- t1 <: t2]]\).  Given an environment in which \([[T]]\) has a forall
+(that is, \emph{L}) semantics, we 
+distinguish two additional cases.  If  \([[T]]\) appears on the
+left of the judgment, then the judgment can be satisfied
+only if the upper-bound for \([[T]]\) is smaller than \([[t]]\):
+%
+\[ [[ T^L_(lb,ub) |- T <: t]] \ \ \text{ if }\ \  [[T^L_(lb,ub) |- ub <: t]]
+\ . \]
+%
+If instead \([[T]]\) appears on the right, then
+it is the lower bound for \([[T]]\) that must be a supertype of \([[t]]\):
+%
+\[ [[ T^L_(lb,ub) |- t <: T]] \ \ \text{ if }\ \  [[T^L_(lb,ub) |- t <: lb]]\ .\]
+%
+Right-introduced variables have exist semantics, so the least
+constraining bound can be chosen to satisfy  a judgment, resulting in:
+%
+\[
+  [[ T^R_(lb,ub) ]] \vdash [[t <: T]] \ \  \text{ if }\ \  [[
+      T^R_(lb,ub) ]] \vdash [[t <: ub]]
+  \hspace{15mm}
+   [[ T^R_(lb,ub) ]] \vdash [[T <: t]] \ \  \text{ if }\ \  [[
+       T^R_(lb,ub) ]] \vdash [[lb <: t]]
+\]
+%
+It might be surprising that variables introduced by a \([[where]]\) on
+the left of the judgment suddenly appear on its right, but this is a consequence of the
+invariance check for type application.  For instance, when checking
+\([[(Ref{T} where Int<:T<:Int) <: Ref{Int}]]\), the \([[T]]\) variable is
+introduced on the left, but we must prove both \([[T^L_(Int, Int)
+    |- T <: Int]]\) and \([[T^L_(Int,Int) |- Int <: T]]\).
+
+Matching right-introduced variables requires care because
+these types are not in subtype relation:
+%
+\begin{align}
+  [[Tuple{Ref{Int}, Ref{Bool}}]]\ & [[</:]] \  [[Tuple{Ref{T}, Ref{T}} where T]] \label{e:mri}
+\end{align}
+%
+because there does not exist a type \([[t]]\) for \([[T]]\)
+that satisfies both the constraints \([[Int <: t <: Int]]\) and
+\([[Bool <: t <: Bool]]\).
+%
+To account for this, whenever an existential variable is matched
+against a type, its bounds are updated to handle the new
+hypotheses on the variable, and the updated environment is
+propagated across the derivation tree.  The complete subtype
+judgment thus has the form:
+%
+\[ [[ E |- t1 <: t2 |-  E' ]]\]
+%
+and should be read as: \emph{in the environment \([[E]]\), type
+  \([[t1]]\) is a subtype of \([[t2]]\), with updated constraints
+  \([[E']]\)}.
+
+For instance, the judgment:
+%
+\[ [[ T^R_(Bottom,Any) |- Ref{Int} <: Ref{T} |-  T^R_(Int,Int) ]]\]
+%
+states that if \([[T]]\) has exist semantics and no bounds, then
+\([[Ref{Int} <: Ref{T}]]\) holds, and later uses of \([[T]]\) must
+satisfy the updated bounds \([[Int <: T <: Int]]\).
+%
+The subtyping rule for tuples
+thus chains the environments across subtype tests of
+tuple
+elements.  In the judgment (\ref{e:mri}) the second element \([[Ref{Bool} <: Ref{T}]]\) is
+thus checked assuming \([[T^R_(Int,Int)]]\) and the derivation fails accordingly.
+
+\paragraph{Environment structure.}
+The environment itself has a non-trivial structure.  First, an
+environment \([[E]]\) is composed of two lists, denoted by
+\([[E.curr]]\) and \([[E.past]]\).  The former, \([[E.curr]]\), is a
+stack of the variables currently in scope (growing on the right), reflecting the order
+in which variables have been added to the scope.  In addition to
+variables, \([[E.curr]]\) records \emph{barriers}: tags pushed
+in the environment whenever the subtype check encounters an invariant
+constructor.  Barriers will be discussed later.
+The second list, \([[E.past]]\), 
+keeps track of variables which are not any longer in scope.  Consider
+ the judgment:
+%
+\[ [[Tuple{Ref{S} where S <: Int}  <: Tuple{Ref{T}} where T]]\]
+%
+In the derivation the variable
+\([[T]]\) is introduced before the variable \([[S]]\) and the judgment
+%
+\[ [[T^R_(Bottom,Any), S^L_(Bottom, Int) |- Ref{S} <: Ref{T} |-  T^R_(S,S), S^L_(Bottom, Int)]] \]
+%
+thus appears in the derivation tree.  A naive rule for \([[where]]\) would
+discharge the variable \([[S]]\) from the environment, obtaining:
+%
+\[ [[T^R_(Bottom,Any) |- (Ref{S} where S <: Int) <: Ref{T} |-  T^R_(S,S) ]] \]
+%
+The type variable \([[S]]\) is still mentioned in constraints of variables
+in scope, but it is not any longer defined by the environment.
+If the variable \([[T]]\) is
+subsequently matched against other types,
+the subtyping algorithm cannot know if the variable
+\([[S]]\) appearing in the bounds of \([[T]]\) has a forall or exist
+semantics, nor which are its bounds.  Discharged
+variables are thus stored in \([[E.past]]\) and accessed whenever
+required.  The subtyping rules guarantee that it is never necessary to
+update the bounds of a no-longer-in-scope variable.  Relying on a
+separate \([[E.past]]\) environment avoids confusion when rules must
+determine precisely the scope of each variable, as motivated in the
+next paragraph.
+
+Variables can be subject to unsatisfiable
+constraints.  For instance, the subtype relation
+%
+\[
+  [[ Tuple{Real, Ref{Int}}   </:  Tuple{S,Ref{T}} where S<:T where T ]]
+  \]
+%
+does not hold because the type variables are subject to
+the three unsatisfiable constraints below:
+\[
+[[Real <: S]] \qquad\quad [[Int <: T <: Int]] \qquad\quad [[S <: T]]
+\]
+and in Julia, \([[Real </: Int]]\).  The
+subtype algorithm records these constraints in the environment
+as \( [[T^R_(Int,Int) ]], [[S^R_(Real,T)]]  \), and whenever
+a right-variable is discharged, it checks that its lower bound is a subtype of
+its upper bound.  In the example above, the derivation is invalidated
+by the failure of the consistency check
+for \([[S]]\):
+%
+\[ [[T^R_(Int,Int), S^R_(Real,T)  |- Real </: T]] \]
+
+
+\paragraph{From forall/exist to exist/forall.}  In some cases
+enforcing the correct ordering of type variable quantifications
+requires extra care.  Consider the judgment:
+%
+\[ [[Vector{Vector{T} where T}  </:  Vector{Vector{S}} where S]]\]
+% 
+The type on the left denotes the set of all the vectors of
+vectors of elements of some type; the type on the right
+requires a common type for all the inner
+vectors.  For instance the value
+\texttt{\small{[\,[1,2],[True,False]\,]}} belongs to the first, but
+not the second, type.
+%
+Unfortunately, the rules  sketched  so far
+let us build a successful subtype derivation. 
+The variables \([[S]]\) and \([[T]]\) are introduced in the environment, and
+then the left-to-right and right-to-left checks
+\[ [[ S^R_(Bottom,Any), T^L_(Bottom,Any)  |- T <:
+    S]] \qquad \text{ and } \qquad [[ S^R_(T,Any), T^L_(Bottom,Any)
+    |- S <: T]]\]
+are performed.
+These trivially succeed because for all
+instances of \([[T]]\) there is a matching type for \([[S]]\).
+
+Let us focus on the quantification order of the variables in
+the above judgment.  It is still true that
+variables introduced on the left have a forall semantics, and variables
+introduced on the right have exist semantics.  However, here we must
+find an instance of \([[S]]\) such that forall \([[T]]\)
+the judgment holds: perhaps surprisingly, the outer invariant
+construct \([[Vector]]\) forces the inversion of the order of quantifications.
+Instead of a forall/exist query we must solve an \emph{exist/forall} one.
+To correctly account for inversion in the order of quantifications,
+derivations must keep track of the relative ordering of
+variable introductions and invariant constructors.  For this, the
+environment \([[E.curr]]\) is kept ordered, and
+\emph{barrier} tags are pushed in \([[E.curr]]\) whenever the derivation goes through
+an invariant constructor.
+
+We say that a variable \([[S]]\) is \emph{outside} a variable
+\([[T]]\) in an environment \([[E]]\) if \([[S]]\) precedes \([[T]]\)
+in \([[E.curr]]\) and they are separated by a barrier tag in
+\([[E.curr]]\).  
+%JB: The lower bound for S should be Any, not S
+%In the example above the second check now becomes:
+%%
+%\[ [[S^R_(T,Any) ,  Barrier, T^L_(Bottom,Any)  |- S <: T]]\]
+%%
+%\noindent The environment correctly identifies the variable \([[S]]\) as
+%outside \([[T]]\).  The derivation can thus invert the
+%forall/exist quantification order whenever a right-variable is matched
+%against an outside left-variable.  In the running example, the judgment
+%\([[T^L_(Bottom,Any), Barrier, S^R_(T,Any) |- S <: T]]\) is thus interpreted
+%as there exists an instance of \([[S]]\) such that, forall instances of
+%\([[T]]\), \([[S <: T]]\) holds.  This fails, as expected.
+%
+In our running example, the first check thus becomes:
+%
+\[ [[S^R_(Bottom,Any) ,  Barrier, T^L_(Bottom,Any)  |- T <: S]]\]
+%
+\noindent The environment correctly identifies the variable \([[S]]\)
+as outside \([[T]]\) and the judgment should thus be interpreted as
+there exists an instance of \([[S]]\) such that, forall instances of
+\([[T]]\), \([[T <: S]]\) holds.  The variable \([[S]]\) must thus be
+compared with the upper bound of \([[T]]\), deriving \([[Any]]\) as
+lower bound:
+%
+\[ [[S^R_(Bottom,Any) ,  Barrier, T^L_(Bottom,Any)  |- Any <: S |-  S^R_(Any,Any) ]]\]
+%
+Again, given \([[S]]\) outside \([[T]]\), the right-to-left check must now prove
+%
+\[ [[S^R_(Any,Any) ,  Barrier, T^L_(Bottom,Any)  |- S <: T ]]\]
+%
+that is, it must conclude that there exists an instance of \([[S]]\)
+such that, forall instances of \([[T]]\), \([[S <: T]]\) holds.  In
+other terms the variable \([[S]]\) must be a subtype of the lower
+bound of \([[T]]\).  This fails, as expected.
+
+
+A subtlety: whenever the forall variable is constrained tightly and
+quantifies over only one type, the exist/forall quantification can still
+correctly succeed, as in the valid judgment below:
+%
+\[
+\begin{array}{l}
+  [[Vector{Vector{T} where Int<:T<:Int}]]  [[<:]] [[Vector{Vector{S}}  where S]] 
+\end{array}
+\]
+%
+
+\paragraph{The diagonal rule.}  Consider the Julia code in the inset
+\noindent that defines equality in terms of equality of representations
+(computed by \code{===}) for all numerical types. This is correct
+provided that
+\begin{wrapfigure}{r}{6.5cm}
+\vspace{-6mm}
+\begin{lstlisting}[linewidth=6.5cm]
+==(x::T, y::T) where T<:Number  =  x === y
+\end{lstlisting}
+\vspace{-6mm}
+\end{wrapfigure}
+only values of the same type are compared,
+as in Julia \([[Int]]\) and \([[Float]]\) have different representations.
+The type of the \texttt{==} method is \([[AA Tuple{T,T} where
+    T<:Number]]\), and the usual interpretation of \([[UnionAll]]\) allows
+\([[T]]\) to range over all allowed types, including \([[Number]]\).  This type
+is thus equivalent to \([[Tuple{Number,Number}]]\) and would match
+values as \texttt{\small{(3,3.0)}}, where the types of components of the
+tuples are different.
+
+Being able to dispatch on whether two values have the same type is
+useful in practice, and the Julia
+subtype algorithm is extended with the so-called
+\emph{diagonal rule}~\cite{manual-diagonal}. A variable is said to be in \emph{covariant position}
+if only \([[Tuple]]\)\,, \([[Union]]\)\,, and \([[UnionAll]]\)\, type constructors occur between an
+occurrence of the variable and the \([[where]]\) construct that introduces
+it.  The \emph{diagonal rule} states that if a variable occurs more
+than once in covariant position, and never in invariant position, then
+it is restricted to ranging over only concrete types.
+%
+In the type \([[Tuple{T,T} where
+    T]]\![[<:]]\![[Number]]\) the variable \([[T]]\) is diagonal: this precludes it
+getting assigned the type \([[Union{Int,Float}]]\) and matching the
+value \texttt{\small{(3,3.0)}}.  
+%
+Observe that in the type \([[Tuple{Ref{T}, T, T} where T]]\) the
+variable $[[T]]$ occurs twice in covariant position, but also occurs
+in invariant position inside \([[Ref{T}]]\); the variable $[[T]]$ is
+not considered diagonal because it is unambiguously determined by the
+subtyping algorithm.  Albeit this design might appear arbitrary, it is
+informed by pragmatic considerations; the C\# language
+implements similar constraints (the paper
+web-page has an example).
+
+
+Enforcing the diagonal rule involves two distinct parts: counting the
+occurrences of covariant and invariant variables, and checking that
+diagonal variables are only instantiated with concrete types.
+Formalizing faithfully these tasks requires some additional
+boilerplate.  The variable entries in the subtyping environment are
+extended with two counters to keep track of the number of occurrences
+encountered in the current subtyping derivation.  These counters must
+be updated while the derivation is built.  Consider again these judgments
+from Sec.~\ref{s:introduction}:
+%
+\[
+\begin{array}{r}
+  [[Tuple{Bool, Int}]]\ [[<:]]\  [[Tuple{Union{Bool, T}, T} where T]] \\
+  [[Tuple{String, Int}]]\  [[</:]]\  [[Tuple{Union{Bool, T}, T} where T]]
+\end{array}
+\]
+%
+The former holds because, even if in the right-hand side the variable
+\([[T]]\) appears syntactically twice, it is possible to build a valid
+derivation that matches \([[T]]\) only once.  The variable \([[T]]\)
+is not diagonal in the former judgment.  In a valid derivation for the
+latter judgment, the variable $[[T]]$ must occur twice in covariant
+position and its final lower bound is \([[Union{String, Int}]]\),
+which is not a concrete type.  This is only one example but, in
+general, subtle interactions between union and existential types do
+not allow counting occurrences to be correctly performed statically;
+it must be a \emph{dynamic} process.  The check that diagonal
+variables are bound only to concrete types is then performed during
+the validation of the consistency of the environment.
+
+\subsection{Specification of the Subtyping Algorithm}\label{s:specsubtype}
+
+Our formalization of Julia subtyping is reported in
+Fig.~\ref{f:subtyping}.  It closely follows the intuitions presented
+in the previous section.
+
+A \emph{variable definition}, denoted \([[T^L_(lb,ub)]]\) or
+\([[T^R_(lb,ub)_(co,io)]]\), specifies a variable name \([[T]]\), its
+lower bound \([[lb]]\) and upper bound \([[ub]]\), and if it has
+forall (\(L\)) or exist (\(R\)) semantics.  To model the diagonal
+rule, variable definitions for \(R\)-variables additionally keep two
+counters: \textit{co} for covariant occurrences and \textit{io} for
+invariant occurrences.  Our
+notation systematically omits the counters
+as they are only accessed and modified by
+the auxiliary functions \([[add]]\), \([[upd]]\) and \([[consistent]]\).  
+A \emph{barrier} is a tag,
+denoted \([[Barrier]]\).  An \emph{environment}, denoted by \([[E]]\),
+is composed by two stacks, denoted \([[E.curr]]\) and \([[E.past]]\),
+of variable definitions and barriers.
+The following operations are
+defined on environments, where \([[E_decl]]\)  ranges over variable
+definitions and barriers:
+
+\begin{description}[labelindent=0pt,labelwidth=!,leftmargin=0mm,itemsep=1mm]
+\item[\normalfont\([[add(E_decl,E)]]\):] push \([[E_decl]]\) at top of
+  \([[E.curr]]\), with occurrence counters initialised to 0;
+
+\item[\normalfont\([[del(T,E)]]\):] pop \([[E_decl]]\) from
+  \([[E.curr]]\), check that it defines the variable \([[T]]\), and
+  push \([[E_decl]]\) at top of  of \([[E.past]]\);
+
+\item[\normalfont\([[del(Barrier,E)]]\):] pop \([[E_decl]]\) from
+  \([[E.curr]]\) and check that it is a barrier tag;
+
+\item[\normalfont\([[search(T,E)]]\):] return the variable definition
+  found for \([[T]]\) in \([[E.curr]]\) or \([[E.past]]\); fail if
+  the variable definition is not found;
+
+\item[\normalfont\([[update(T^R_(lb,ub), st, E)]]\):] update the lower
+  and upper bounds of the variable definition \([[T]]\) in
+  \([[E.curr]]\); if the variable is found in \([[E]]\) after a
+  barrier then increase the invariant occurrence counter, and the
+  covariant occurrence counter otherwise.  Fail if the variable
+  definition is not found;
+
+\item[\normalfont\([[resetocc(E,E')]]\) and
+  \normalfont\([[maxocc(E)]]\):] for each variable \([[T]]\) defined
+  in \([[E]]\), \([[resetocc(E,E')]]\) updates its occurrence
+  counting with the occurrence counting for \([[T]]\) in \([[E']]\),
+  while \([[maxocc(E)]]\)  updates its occurrence counting with the
+  max of the occurrence counting for \([[T]]\) in \([[E1]]..[[En]]\);
+
+\item[\normalfont\([[consistent(T,E)]]\):] search \([[T]]\) in
+  \([[E]]\).  If the search returns \([[T^L_(lb,ub)]]\), then return
+  true if \([[E |- lb <: ub]]\) and false otherwise; while building this judgment
+  recursive consistency checks are disabled.
+  If the search returns \([[T^R_(lb,ub)_(co,io)]]\),
+  then check if \([[E |- lb <: ub]]\) is derivable.  If not, return
+  false.  If yes, additionally check the diagonal rule: if
+  \(\textit{co} > 1\) and \(\textit{io} = 0\) then its lower-bound
+  \([[lb]]\) must be a concrete type, as checked by the
+  \([[is_concrete(lb)]]\) function.  The definition of this function
+  is non-trivial as a lower bound might depend on the values of other
+  type variable bounds. For example, \([[Vector{T}]]\) is equivalent
+  to a concrete type \([[Vector{Int}]]\) only if both the upper and
+  lower bounds of \([[T]]\) equal \([[Int]]\). At the time of writing,
+  Julia's implementation of \(\textit{is\_concrete}\) is heuristic and
+  does not catch all possible concrete types.  We omit its
+  formalisation but our artifact includes a
+  simple implementation.  The shorthand
+  \([[consistent(E)]]\) checks the consistency of all variables in the
+  environment \([[E]]\).
+\end{description}
+
+\begin{figure*}
+  \hrule
+  \smallskip
+\hfill
+\ottusedrule{\ottdruletop{}}
+\hfill
+\ottusedrule{\ottdrulerefl{}}
+\hfill
+\ottusedrule{\ottdruletuple{}}
+\hfill\mbox{}
+
+\vspace{3mm}
+
+\hfill
+\ottusedrule{\ottdruletupleXXliftXXunion{}}
+\hfill
+\ottusedrule{\ottdruletupleXXunliftXXunion{}}
+\hfill\mbox{}
+\vspace{3mm}
+
+\ottusedrule{\ottdruleunionXXleft{}}
+  \hfill
+\ottusedrule{\ottdruleunionXXright{}}
+
+\vspace{3mm}
+
+\mbox{\hspace{-5mm}
+\ottusedrule{\ottdruleappXXinv{premiselayout=justify}}
+\ottusedrule{\ottdruleappXXsuper{}}}
+
+\vspace{3mm}
+\hfill
+\ottusedrule{\ottdruleLXXintro{}}
+\hfill
+\ottusedrule{\ottdruleRXXintro{}}
+\hfill\mbox{}
+
+\vspace{3mm}
+\ottusedrule{\ottdruleLXXleft{}}
+\hfill
+\ottusedrule{\ottdruleLXXright{}}
+\hfill
+\ottusedrule{\ottdruleRXXL{premiselayout=justify}}
+\mbox{}
+
+\vspace{3mm}
+\mbox{
+\ottusedrule{\ottdruleRXXleft{}}
+\hspace{1cm}
+\ottusedrule{\ottdruleRXXright{}}
+}
+
+\vspace{3mm}
+\hfill
+\ottusedrule{\ottdruleTypeXXleft{}}
+\hfill
+\ottusedrule{\ottdruleTypeXXright{premiselayout=justify}}
+\hfill\mbox{}
+
+\vspace{3mm}
+\hfill
+\ottusedrule{\ottdruleTypeXXType{premiselayout=oneline}}
+\hfill\mbox{}
+
+\bigskip
+\hrule
+
+
+\caption{The subtype relation.}
+\label{f:subtyping}
+\end{figure*}
+
+We assume that types appearing in a judgment are well-formed, as
+enforced by the \([[typeof]]\) relation.  We comment the subtyping
+rules.  The rule~\ottdrulename{any} states that \([[Any]]\) is the
+super-type of all types.  The rule~\ottdrulename{tuple\_lift\_union}
+rewrites tuple types on the left-hand-side of the judgment in
+disjunctive normal forms, making the distributivity of unions
+with respect to tuples derivable.  This rule can be invoked multiple
+times in a subtype derivation, enabling rewriting tuples
+in disjunctive normal form even inside invariant
+constructors.
+Rewriting is performed by the auxiliary function
+\([[lift_union(t)]]\), which pulls union and where types out of
+tuples, anticipating
+syntactically the forall quantifications in a derivation.
+Symmetrically, the rule~\ottdrulename{tuple\_unlift\_union} performs
+the opposite rewriting, delaying syntactically the exist
+quantifications, on union types appearing on the right-hand side of
+a judgment.  The auxiliary function \([[unlift_union(t)]]\) returns
+a type \([[t']]\) such that \([[t = lift_union(t')]]\).  Finally, the
+rule~\ottdrulename{tuple} checks covariant subtyping of the tuple
+elements.  The constraints generated by subtyping each element are assumed
+by subsequent checks.
+
+The, perhaps surprising, need for the
+\ottdrulename{tuple\_unlift\_union} rule is
+due to the \emph{complex interaction between invariant constructors, union
+types, and existentials}.  The following judgment:
+\[ [[Ref{Union{Tuple{Int}, Tuple{Bool}}} <: Ref{Tuple{T}} where T]] \]
+is valid because \([[T]]\) can be instantiated with \( [[
+    Union{Int,Bool} ]] \).  However building a derivation without the
+\ottdrulename{tuple\_unlift\_union} rule fails.  Initially the
+left-to-right check for invariant application generates the constraint
+\( [[ T >: Union{Int,Bool} ]] \).  Given the environment
+\([[T^R_(Union{Int,Bool},Any)]]\), the right-to-left check \([[
+    Tuple{T} <: Union{Tuple{Int},Tuple{Bool}}]]\) gets stuck trying to
+prove \([[T<:Int]]\) or \([[T<:Bool]]\).  Rule
+\ottdrulename{tuple\_unlift\_union} enables rewriting the
+right-to-left check into \([[ Tuple{T} <: Tuple{Union{Int,Bool}}]]\),
+which is provable because the existential quantification due to the
+Union in the right-hand side is syntactically delayed.
+
+Rules~\ottdrulename{union\_left} and~\ottdrulename{union\_right}
+implement the forall and exist semantics for union types on the left
+and on the right of the subtyping judgment.
+In rule \ottdrulename{union\_left}, the constraints generated by
+subtyping each element are assumed by each subsequent check and thus
+propagated into the final constraints.  Discarding these constraints
+would allow proving that \([[ Pair{Union{Int,Bool}, Int}]]\) is a
+subtype of \([[Pair{T,T} where T]]\), which is incorrect.  However, to
+count correctly the occurrences of variables for the diagonal rule,
+each forall subderivation must reset the dynamic counting of the
+occurrences to that of its initial state, while the occurrences
+of the variables in the final state must be updated with the max of
+their occurrences in each intermediary state. 
+%
+From~\ottdrulename{union\_left} we immediately
+ derive that \([[Union{}]]\) is subtype of all
+types, because its hypothesis is trivially validated by the forall
+quantification over an empty set.
+We conjecture that, given a type \([[Union{t1,..,tn}]]\), the order of
+the types \([[ti]]\) is irrelevant for subtyping,
+but a formal proof is non-trivial.
+%We discuss in Sec.~\ref{s:sub-revised-intersection} an alternative design for the
+% rule~\ottdrulename{union\_left}. 
+
+Type application is governed by~\ottdrulename{app\_inv}
+and~\ottdrulename{app\_super}.
+When subtyping type applications with the same callee, the
+rule~\ottdrulename{app\_inv} pushes a barrier onto the environment and
+checks the invariance of the actual type parameters.  Constraints are
+all propagated across all subtype checks.  If all checks succeed,
+the latest barrier is deleted from the environment and the final
+constraints are passed on.  A subtlety: the number of actual
+parameters on the right-hand side can be smaller than that on the
+left-hand side.  It is indeed always the case that partial application
+gives rise to super-types; for example \([[Dict{Int,String} <:
+    Dict{Int}]]\) holds because \([[Dict{Int,String}]]\) denotes all
+dictionaries associating integers to strings, while \([[Dict{Int}]]\)
+denotes all
+dictionaries associating integers to arbitrary values: it is natural
+to consider the latter a supertype of the former.
+Rule~\ottdrulename{App\_Super} enables replacing a
+user-defined type by its supertype in the left-hand side of a
+judgment; while doing so, the rule also appropriately instantiates
+the type variables of the supertype.
+
+Rules~\ottdrulename{L\_intro} and \ottdrulename{R\_intro} add a
+\([[where]]\) introduced variable to the current environment, specifying the relevant forall (\textit{L}) or exist (\textit{R})
+semantics, and attempt to build a subtype derivation in this extended
+environment.  Finally, since it gets out of scope, the introduced
+variable is deleted from the \texttt{curr} list and added to the
+\texttt{past} list.  Variables with exist semantics might have had
+their bounds updated in unsatisfiable way; before discarding them, the
+consistency of their bounds is checked by the \([[consistent(T,E)]]\)
+auxiliary function.
+
+Subtyping for type variables is governed by
+rules~\ottdrulename{L\_left}, \ottdrulename{L\_right},
+\ottdrulename{R\_left} and \ottdrulename{R\_right}.  Type variables
+with forall semantics are replaced with the hardest-to-satisfy bound:
+the upper bound if the variable is on the left of the judgment, and
+the lower bound if the variable is on the right.  Variables with exist
+semantics are instead replaced with their easiest-to-satisfy bound,
+and, to keep track of the match, bounds of these variables are updated
+if a successful derivation is found, reflecting their new bound.  By
+symmetry one would expect the rule~\ottdrulename{R\_left} to update
+\([[T]]\) upper bound with \([[t]] \cap [[u]]\).  Until recently, it
+was believed that, because of invariance, the explicit ordering of the
+checks performed by rule~\ottdrulename{app\_inv}
+or~\ottdrulename{Type\_Type} would ensure that \([[t <: u]]\) had
+already been checked by rule~\ottdrulename{R\_right}.  Therefore it
+would always hold that \([[t]] = [[t]] \cap [[u]]\), avoiding the need
+to compute intersections of Julia types.  To everybody surprise this
+turned out to be false.  Consider:
+\[
+  [[Vector{Vector{Number}}]]\  [[<:]]\ 
+  [[Vector{Union{Vector{Number}, Vector{S}}}
+    where Int<:S<:Signed ]]
+\]\label{juliabug:rleft}
+\noindent This judgment contradicts the idea that \([[Vector{S}]]\)
+can be subtype of \([[Vector{Number}]]\) only if \([[S]]\) is
+equivalent to \([[Number]]\), which is not possible here.  However
+both Julia and our formalization can build a derivation for it: due to
+the existential on the right-hand side, the check that ought to ensure
+\([[t <: u]]\), that is \([[Number <: Signed]]\), is skipped when
+performing the left-to-right subtype check of the invariant
+constructor \([[Vector]]\).  In the spirit of this work, our
+formalization faithfully mimic Julia behaviour.  
+Consequences and possible mitigations to this design issue are
+discussed in Section~\ref{s:sub-revised-intersection}.
+
+To account for the exist/forall
+quantification inversion, the \ottdrulename{R\_right} does not apply
+if the type on the left is
+a variable with forall (that is, \(L\)) semantics
+and the variables are in the exists/forall quantification
+(the check \([[notoutside(T,S,E)]]\) is responsible for this).
+%Similar reasoning works for the rule \ottdrulename{R\_left}.
+Matching R-L
+variables is specially dealt by the \ottdrulename{R\_L} rule, which
+also performs the necessary outside check: if the \(R\)-variable is
+outside, then the bounds on the \(L\)-variable must constraint it to
+only one type.  For this the check \([[ub <: lb]]\) is sufficient, as the
+other direction is later verified by the environment consistency check.
+
+Subtyping the \([[Type]]\)\, construct is more subtle than expected.  
+Recall that for each type or plain-bit value \([[a]]\), the singleton
+type \([[Type{a}]]\)
+is an abstract type whose only instance is the object \([[a]]\).
+Subtyping two \([[Type{a}]]\) is analogous to check invariance of
+constructors, as done by rule \ottdrulename{Type\_Type}.  But there
+are additional cases to be considered.
+\([[Type{a}]]\) is subtype of the type of \([[a]]\) (e.g.\ \([[Type{1}
+    <: Int]]\)), as
+enforced by the rule \ottdrulename{Type\_left}.  Conversely,
+\([[Type{t}]]\) has subtypes only if \([[t]]\) is a type variable, and
+the only subtypes are kinds; the recursive check
+updates correctly the constraints for \([[t]]\).
+
+Interestingly, reflexivity of subtyping is not derivable from these
+rules, due to the asymmetric treatment of \(L\) variables.  Consider
+for instance \([[T^L_(Bottom,Any) |- T <: T]]\): the judgment ought to
+be true, but the subtyping rules will independently replace the left
+and right occurrences of \([[T]]\) by upper and lower bounds, ignoring
+that the same variable was thus attempting to prove
+\([[T^L_(Bottom,Any) |- Any <: Bottom]]\).  \Julia subtype
+algorithm systematically performs reflexivity checks on the fast path;
+reflexivity ought to hold.  This is solved by explicitly adding
+the~\ottdrulename{refl} rule to the system.  Plain-bit values behave
+as singleton types; as such, the rule~\ottdrulename{refl} is the only
+one that applies on plain-bit values.
+
+We made the explicit choice of not baking transitivity into the
+subtype rules, expecting it to be derivable.  
+This design choice allowed us to identify a
+bug in \Julia, discussed in
+Sec.~\ref{s:juliabugs}. More interestingly, it turned out that by exploiting empty
+tuples it is possible to build judgements for which transitivity does
+not hold, as discussed in Sec.~\ref{s:tuplebottom}. Although surprising,
+the programming practice is not affected because empty tuple types are
+not inhabited.
+
+
+\paragraph{Unprovable judgments.} Julia's subtype algorithm, and in turn our
+formalization, cannot prove all judgments expected to hold.
+For instance it cannot prove:
+\[ [[(Tuple{T} where String <: T <: Int)  <:  Union{}]] \quad \text{
+  or } \quad  [[Tuple{Union{}} <: Union{}]]
+ \]
+despite all these types having no elements (the type on the left-hand side
+being a valid Julia type).
+%% \[
+%%  [[(Ref{T} where T)]]  [[<:]] 
+%%  [[Union{Ref{T} where T<: Int, Ref{T} where T >: Int}]]
+%% \]
+%% despite both being equivalent to \([[Ref{Any}]]\).  
+%\[
+%  [[(Ref{T} where T)]]  [[<:]] 
+%  [[Union{Ref{T} where T<: Int, Ref{T} where T >: Int}]]
+%\]
+Additionally,
+constraints on type variables that are declared in the type
+definitions, such as in \code{struct
+  Foo\{T<:Integer\}} \code{end}, are not relied upon by subtyping; therefore
+it is not possible to prove judgments as \([[(Foo{T} where T) <:
+    Foo{T} where T<:Integer]]\).  For dispatch these are not issues,
+as similar examples do not occur in the programming practice.
+
+
+\paragraph{Omitted features.}
+Our work omits the \([[Vararg]]\{[[T]],[[N]]\}\) construct.  This can be
+used as last parameter of a tuple to denote \([[N]]\) trailing arguments of
+type \([[T]]\).  Supporting it would add considerable boilerplate to the
+formalization to distinguish the case where a concrete integer has been
+supplied for \([[N]]\) from the general case where it is left parametric,
+without adding interesting interactions between the type system
+features.
+
+
+We mentioned that Julia type syntax  allows to instantiate explicitly existential
+types, via the syntax \([[(t where t1<:T<:t2){a}]]\).  These types are
+immediately rewritten by Julia frontend into their equivalent
+``beta-reduced'' type \([[t[a/T] ]]\); this behavior can be modeled
+by a simple ahead-of-time rewrite step, which we omit for simplicity 
+from our formalization, although it is  performed by our reference implementation.
+
+
+\section{Empirical Validation}\label{s:validation}
+
+Is the complexity of Julia's subtype relation motivated by real-world
+requirements? If not, then a simpler notion of subtyping may be devised.  Is
+our specification a model of the reference implementation? Perhaps we have
+over-engineered a specification with unnecessary rules or missed some
+important corner cases.   
+
+To answer both questions we present data obtained by considering 100 popular
+Julia projects from GitHub. We show through static analysis that developers
+avail themselves to the full power of the Julia type annotation sublanguage,
+and dynamic analysis allows us to answer whether ours is a faithful model.
+
+
+
+\begin{figure*}[!b]
+\includegraphics[width=\textwidth]{figure/all-two-legend}
+ \caption{(a) Type declarations (upper). (b) Proportion of complex types in
+   methods (lower).}\label{f1}
+ \end{figure*}
+
+
+
+\subsection{Type Annotations in the Real-World}
+\label{ss:type-ann-stats}
+
+
+The need for an expressive subtype relation must be motivated by real-world
+use cases. We analyzed a corpus of projects and extracted statistics on all type
+declarations.  In Fig.~\ref{f1}(a) each bar depicts the total number of types
+declared by a project, how many of those type declarations have at least one
+type parameter, and how many of those apply a bound to one of their
+parameters.
+%(package names are reported in the paper web-page).
+The total number of types declared in the corpus is $2\,717$,
+with the \code{Merlin} package defining the per-package maximum of 204
+types.  The median number of types declared in a package is 15, with 60\% of
+the packages defining at least 10 types.  The total number of parametric
+types is 815 and the number of bound parametric types (where the bound is
+not trivial, i.e. \code{Any}) is 341.
+
+
+Fig.~\ref{f1}(b) depicts four statistics for each project regarding type
+annotations on methods: of methods with at least one argument of a type
+other than \code{Any}, methods with a union or a where clause, methods
+with a where
+clause, and methods with a where clause with at least one explicit
+bound. The mean proportion of union or where clauses is 18\%, the mean proportion of
+where clauses is 16\%, and the mean proportion of nontrivial where clauses is 6\%.  These
+numbers exclude the standard library: language implementors are more
+likely to use advanced features than end-users.
+
+
+Overall these numbers suggest that programmers use the type declaration
+features of Julia and even the more complex where-bounded type annotations
+occur in most projects.  
+
+
+\subsection{Re-implementing Subtyping}
+
+We wrote our own implementation of Julia subtyping in Julia.  Our
+development comprises about 1,000 lines of code.  For parsing types, we rely
+on Julia's parser but prevent front-end simplification.  Our subtyping rules
+do not naturally define an algorithm.  For instance, in the simple judgment
+\code{Union\{Int,String\}} \code{<:} \code{Union\{String,Int\}} two rules
+apply, namely~\ottdrulename{union\_left} and \ottdrulename{union\_right},
+but a derivation requires \ottdrulename{union\_left} to be used first.  The
+challenge is thus to direct the search in the proof space.  Our
+implementation applies the following strategy:
+\begin{enumerate}
+  \item if the type on the right-hand side is \code{Any}, return true;
+  \item if~\ottdrulename{union\_left} applies, then it has higher priority
+    than all other rules (including~\ottdrulename{union\_right});
+  \item if the left-hand side and right-hand side are both type
+    variables, analyze their \(L\) or \(R\) annotations to check if
+    the~\ottdrulename{R\_L} rule applies;
+  \item \ottdrulename{tuple\_lift\_union} and
+    \ottdrulename{tuple\_unlift\_union} have higher priority
+    than~\ottdrulename{tuple};
+  \item replacing a type variable with its lower or upper bound is
+    prioritary over decomposing \([[where]]\) constructs;
+  \item rule~\ottdrulename{app\_inv} has
+    higher priority than rule~\ottdrulename{app\_super}.
+\end{enumerate}
+Additionally, in rules \ottdrulename{L\_left}, \ottdrulename{L\_right}, and
+\ottdrulename{R\_L}, we substitute all occurrences of the left variable~\code{T};
+this simplifies the search of the states where the
+\ottdrulename{refl} rule must be applied.  As we mentioned, when checking
+consistency of the environment, nested calls to the function
+\([[consistent]]\) are disabled and assumed to succeed.  Our implementation
+can exhaustively explore the search space due to the
+\ottdrulename{union\_right} existential quantification; this is the only
+source of backtracking.  A complete implementation of the auxiliary function
+\([[unlift_union]]\) is complex, our implementation is heuristic.
+
+Our implementation outputs XML traces of derivations, useful for
+manual inspection, and collects statistics about the
+rule usage.  Comforting the above claims, rule usage statistics
+confirm that all rules are needed to validate real-world subtype
+judgments, including the perhaps surprising
+\ottdrulename{unlift\_union} and \ottdrulename{R\_L}, used
+respectively 27 and 1163 times on a benchmark of 6 millions 
+tests.
+
+
+\subsection{Subtyping Validated}
+
+Our first benchmark is the test suites for the Julia subtype implementation
+internally used by Julia developers (\code{test/subtype.jl}): about 160
+hand-picked tests inspired by bug-reports, and $335\,097$ subtype queries over
+a list of 150 types for properties of the subtype relation such as
+\code{Union\{T,S\}} \code{==} \code{T} implies \code{S} \code{<:} \code{T}.
+Our reference implementation passes all the tests from both test suites.
+
+To further explore corner cases, we developed a fuzzer that generates pairs
+of types; it builds on the approach pioneered by~\citet{Claessen00} to
+fuzz-test a unification algorithm.  The key idea is to randomly generate one
+term, and derive a second term by \emph{mutation} of the first one.  Our
+fuzzer relies on the FEAT library by~\citet{Duregard12} to enumerate
+exhaustively up to a certain size \emph{pre-types} over a simplified algebra
+of type constructors:
+\[
+  p  ::= \  \square
+    \gbar [[Union{p1,p2}]]
+    \gbar [[Tuple{p1,p2}]]
+    \gbar [[app{p}]]
+\]   
+%
+Every pre-type is then mutated by replacing the instances of the placeholder
+\(\square\) with either the concrete type \code{Int}, or the abstract type
+\code{Number}, or a type variable \code{T}.  If a type variable is used, it
+is bound by a \code{where} clause at the top level.  Additionally, the
+placeholder \([[app]]\) is instantiated by either the concrete type
+constructor \code{Val}, or by the abstract type constructor \code{Ref}.
+Mutating from a simplified algebra ensures that generated types satisfy the
+well-formedness conditions imposed by Julia.  Pairs of mutated types from
+the same pre-type are then passed to Julia and compared with our
+implementation.  The generated types explore many corner cases of the
+algorithm (e.g.\ type variables appearing in covariant/invariant
+positions, tuple and union types, and various combinations of
+concrete/abstract matching).  The fuzzer discovered three previously
+unknown issues in the Julia implementation (reported in
+Appendix~\ref{a:appendixissues}).
+
+Finally, to stress test our implementation on realistic workloads, we
+instrumented the Julia C runtime to log all the calls to the subtype
+function.  We traced the execution of the commands \code{using PkgName} and
+\code{Pkg.test(PkgName)} for 100 packages.  The former builds the dispatch
+table for the methods defined in the imported package, calling subtype to
+sort their types.  The latter executes tests, allowing us to explore the
+calls to subtype performed during execution.  To reduce noise in the logs,
+we filter duplicates and precompile all dependencies of packages before
+logging anything.  Our implementations of \code{typeof} and \code{subtype}
+require that all the declarations of user-defined types (denoted \([[tds]]\)
+in the formalization) are passed as an argument.  We wrote a tool that dumps
+the whole subtype hierarchy loaded in a Julia instance, by starting from the
+type \code{Any} and recursively walking the type hierarchy.  We compare the
+outcome of each logged subtype test (ignoring those for which at least one
+type is not well-formed) with the result returned by our implementation.
+
+Our \code{subtype} implementation differs from Julia's algorithm on \LJVSubFailTot
+tests out of \LJVAllSubTot (of which \LJVSubTot are non-trivial, that is
+they are not instances of the \ottdrulename{top} or \ottdrulename{refl} rule, or
+subtype tuples with different number of arguments).  Per-package
+numbers are reported on the project's web-page.
+We have manually
+inspected and analyzed the failures: \LJVSubFailJuliaBug are instances a \Julia bug
+described below, which we reported and has been acknowledged and fixed.  The
+remaining \LJVSubFailDiscrep cases are also suspected to be Julia bugs and are under
+examination.
+
+
+
+
+\subsection{Julia Bugs}
+\label{s:juliabugs}
+
+Since the inception of this project, we have discovered and reported
+several issues affecting \Julia subtyping. Appendix~\ref{a:appendixissues} lists all our bug reports, 
+here is a discussion of the most interesting ones.
+
+The majority of discrepancies on the realistic workload of the previous section,
+\LJVSubFailJuliaBug differences out of \LJVSubFailTot,
+can be reduced to judgments of this form:
+%
+\code{Tuple\{Ref\{Ref\{T\}\}} \code{where T, Ref\{T\}} \code{where T\}}
+\code{<:} \code{Tuple\{Ref\{S\}, S\}} \code{where S}.
+Such judgments hold in \Julia, though they should not.
+We reported this
+issue to the Julia developers and it has been promptly fixed; it was due to
+the incorrect treatment of variables that go out of scope. 
+
+
+While developing our system, we also identified corner cases of Julia
+subtype design which were not covered by the reference test suite.  These
+include subtle bugs affecting reflexivity and transitivity of
+subtyping in \Julia design.  The transitivity one is interesting.
+These two judgments hold:
+\begin{align}
+\text{\code{Tuple\{Number, Number, Ref\{Number\}\}}} & <: 
+  \text{\code{Tuple\{T, T, Ref\{T\}\}}~\code{where T}} \label{e:di1} \\
+\text{\code{(Tuple\{T, T, Ref\{T\}\}}~\code{where T) }} & <:
+  \text{\code{Tuple\{S, S, Ref\{Q\}\}}~\code{where Q  where S }} \label{e:di2}
+\end{align}
+
+\noindent
+but their transitive closure does not hold:
+
+\begin{center}
+  \code{Tuple\{Number, Number, Ref\{Number\}\}} 
+ ~ ~  $[[</:]]$  ~ ~ \code{Tuple\{S, S, Ref\{Q\}\}} \code{where Q where S}
+\end{center}
+
+\noindent
+Type variable \code{S} is diagonal, so its lower bound cannot be the
+abstract type \code{Number}.  This is a design issue.  In the
+judgment~(\ref{e:di2}), it is incorrect to allow the diagonal variable
+\code{S} to be instantiated with the variable \code{T} because there
+is no guarantee that \code{T} itself is instantiated with a concrete
+type.  Indeed in judgment~(\ref{e:di1}) the variable \code{T} is not
+diagonal, and gets instantiated with the abstract type \code{Number}.
+Our formalization makes the problem evident: occurrence counters
+to identify diagonal variables are only kept and updated for right
+variables. The issue will be fixed in the next revision of Julia by
+keeping occurrence counters for left variables too.
+
+One more surprising issue affects Julia's frontend.
+We mentioned that the frontend implicitly performs several
+simplifications when parsing and building the internal representation of
+types; for instance, \code{T where T} is replaced by \code{Any}, or
+\code{Union\{Int,Int\}} is replaced by \code{Int}.  In general these
+transformations are sound, with one notable exception: simplification of
+types under explicit type instantiation is incorrect.  In our formalization
+we have:
+
+\begin{center}
+\code{(Vector\{T\}} \code{where T where S)\{Int\}}
+~ ~ ~ $[[</:]]$ ~ ~ ~\code{Vector\{Int\}}
+\end{center}
+
+\noindent Julia incorrectly simplifies the type on the left-hand side as
+\code{Vector\{Int\}} (while it would be correct to rewrite it as
+\code{Vector\{T\}} \code{where T}) and concludes that subtyping holds.  We
+have reported this arguably incorrect behavior.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Design tradeoffs}\label{s:sub-revised}
+
+In this work we set out to formalize the subtype relation as
+implemented by \Julia; while doing so we have contributed to
+identifying both bugs in the current implementation and issues in the
+design.  Most of these have been addressed by developers and are fixed
+in \JuliaDev, the development branch of Julia.
+%% Some challenging
+%% design issues, potentially calling for widespread changes in Julia
+%% internals, are unfortunately still open.
+In this section we briefly review alternative proposals to address
+potentially unsatisfactory design points, and discuss their
+implementation drawbacks.
+
+%% some remaining challenging design issues, potentially calling
+%% for widespread changes in Julia internals.  We propose designs to
+%% address them -- which in two cases we have implemented and evaluated
+%% -- and discuss their drawbacks.
+
+
+
+%% Earlier in the paper we discussed several deficiencies of subtyping in \Julia,
+%% including the lack of transitivity and
+%% loss of constraints\footnote{Recall a discussion of the rule
+%%   \ottdrulename{R\_left} on page~\pageref{juliabug:rleft}, Sec.~\ref{s:specsubtype}.}.
+
+%% These issues, as well as some others not mentioned yet,
+%% are to be fixed in the next revision of Julia.
+%% In some cases solution is straightforward; for instance, the transitivity 
+%% example from Sec.~\ref{s:juliabugs} has been fixed in \JuliaDev by 
+%% introducing occurrence counters for the left-hand side types similar
+%% to the right-hand side ones.
+%% There are issues, however, for which it remains
+%% unclear what is the best way to proceed.
+%% In this section we review some design choices made by \JuliaDev
+%% in order to resolve the existing problems, and investigate the advantages and/or
+%% implementation tradeoffs required by alternative designs.
+
+
+
+
+%\subsection{Should \([[Tuple{Union{}}]]\) be equal to  \([[Union{}]]\)?}
+
+\subsection{Transitivity and Uniqueness of the Bottom Type}
+    
+\label{s:tuplebottom}
+In Julia, types \([[Tuple{Vector{T}, Union{}} where T]]\)
+and \([[Tuple{Vector{T} where T, Union{}}]]\) are equivalent, and
+the following judgments hold:
+\begin{align}
+  [[Tuple{Vector{T} where T, Union{}}]] & [[<:]]  [[Tuple{Vector{S},
+        Vector{S}} where S]] \nonumber \\
+  [[(Tuple{Vector{S}, Vector{S}} where S)]] & [[<:]]  [[Tuple{Q, Q}
+      where Q]] \label{e:ea1}
+\end{align}
+However, in \Julia their transitive closure does not, as we have:
+\begin{align}
+  [[Tuple{Vector{T} where T, Union{}}]]\ [[</:]] \ [[Tuple{Q, Q} where Q]] \label{e:ea2}
+\end{align}
+The judgment~(\ref{e:ea1}) holds because for all
+instantiations of \([[S]]\) the type \([[Vector{S}]]\) is concrete
+and \([[Union{}]]\) is a subtype of any type, while
+in judgment~(\ref{e:ea2}) the diagonal rule prevents subtyping because
+the type
+\([[Vector{T} where T]]\) is abstract.
+This has been fixed in \JuliaDev 
+by making~(\ref{e:ea1}) false.  We argue that this solution in
+unsatisfactory.  It is odd to have
+\[
+  [[(Tuple{Vector{S}, Vector{S}} where S)]]\ [[</:]] \  [[Tuple{Q, Q} where Q]]
+  \]
+  while any instantiation of \([[S]]\) with a concrete type,
+  e.g.~\([[Int]]\), leads to valid subtyping, e.g.:
+\[
+  [[  Tuple{Vector{Int}, Vector{Int}} <: Tuple{Q,Q} where Q]]
+  \]
+%% As a practical consequence, consider a function \code{foo} with two
+%% methods, \code{foo(x::Q, y::Q)} \code{where Q} and
+%% \code{foo(v1::Vector\{S\}, v2::Vector\{S\})} \code{where S}, and a
+%% call \code{foo(a::Vector\{Int\}, b::Vector\{Int\})}.  Both methods of
+%% \code{foo} are applicable, but there is not a most specific
+%% one: the programmer must explicitly disambiguate the dispatch by
+%% implementing one extra (conceivably redundant) method.
+
+We propose an alternative design.  The type \code{Tuple\{Union\{\}\}}
+(or, more generally, any tuple type containing \code{Union\{\}} as one
+of its components) is not inhabited by any value, and dispatch-wise it
+behaves as \code{Union\{\}}.  However, neither \Julia nor our formalization can prove it
+equivalent to \code{Union\{\}} because the judgment
+\code{Tuple\{Union\{\}\} <: Union\{\}} is not derivable: following
+\Julia semantics, the \textit{lift\_union} function does not lift
+empty unions out of tuples.  Extending \textit{lift\_union} to lift
+empty unions, thus rewriting types such as \code{Tuple\{Union\{\}\}}
+into \code{Union\{\}}, is straightforward; the resulting subtype
+relation is not affected by the transitivity problem described above.  We
+have modified our reference implementation along these lines.
+Testing over the real-world workloads does not highlight differences
+with the standard subtype relation, suggesting that this change does
+not impact the programming practice.
+  However, this alternative design has
+implementation drawbacks.  Assuming that a \([[Tuple{t}]]\) type in a
+program where \([[t]]\) is unknown yields a 1-element tuple type
+becomes incorrect, making dataflow analyses more complex.  Also,
+uniqueness of the bottom type is lost, and testing if a type is bottom
+(a test that occurs surprisingly often in Julia code-base) becomes
+slower.  These tradeoffs are being investigated by Julia developers.
+
+
+\subsection{Ahead-of-time Normalization and Static Detection of
+  Diagonal Variables}
+%
+We have seen in Sec.~\ref{s:sub-understanding} that the interactions
+between subtyping invariant constructors, union types, and existential
+types make dynamic lifting and unlifting of union and existential
+types with respect to tuples necessary to specify a complete subtype
+relation.  It is, however, interesting to explore if an ahead-of-time
+normalization phase has any benefit.
+
+Since lifting unions across invariant constructors is unsound, our
+\emph{normalization} phase rewrites tuples of unions into unions of
+tuples, pulling wheres out of tuples and pushing wheres inside
+unions, both at top-level and inside all invariant constructors.
+Additionally, it rewrites tuples with a bottom element
+into the bottom type, as suggested in Sec.~\ref{s:tuplebottom}.
+
+Search over normalized types does not require the
+rule~\ottdrulename{tuple\_lift\_union} anymore, but
+rule~\ottdrulename{tuple\_unlift\_union} is still crucial (even more so) for
+completeness.  Despite this, ahead-of-time normalization may 
+have benefits.  At the end of Sec.~\ref{s:sub-understanding} we
+explained that in a type such as \[ [[Tuple{Union{Bool,T}, T} where T]]\] it
+is not possible to determine statically if the variable \([[T]]\) is
+diagonal as this depends on the type on the left-hand side of
+the judgment and on the derivation.  However, if this type is normalized into the equivalent type
+\[
+  [[Union{Tuple{Bool, T1} where T1, Tuple{T2, T2} where T2}]]
+  \]
+the confusion about the variable \([[T]]\) is removed: the
+variable \([[T2]]\) is diagonal, while the variable \([[T1]]\) is not.
+It is then straightforward to write a function \emph{mark\_diagonal} that
+marks variables over normalized types as diagonal whenever they
+occur more than once in a covariant context and never in an invariant
+context.  In the general case, static marking can only
+\emph{approximate} the dynamic counting of occurrences, for
+%due to
+%JB: many ings, a bit hard to grasp
+%variable appearing in bounds that get expanded only while building a
+variables that appear in bounds get expanded only while building a
+complete derivation.  However, the static counting has some nice properties.
+
+First, a syntactic separation between diagonal and non-diagonal
+variables avoids subtle interactions of unions and type variables.
+Both \Julia and \JuliaDev, as well as our formalisation, state that the judgment below is correct:
+\[
+  [[(Tuple{Q,Int} where Q<:Union{Bool,S} where S) <: Tuple{Union{Bool, T}, T} where T]]
+\]
+We argue that this judgment should not hold. The variable \([[T]]\), when
+matched with \([[S]]\) and \([[Int]]\), should be considered
+diagonal. This becomes explicit if the right-hand side is normalized
+into the type \([[Union{Tuple{Bool, T1} where T1, Tuple{T2, T2} where T2}]]\);
+\Julia and \JuliaDev confirm that
+\[
+\begin{array}{ll}
+  [[(Tuple{Q,Int} where Q<:Union{Bool,S} where S)]] & [[</:]]\\
+  [[Union{Tuple{Bool, T1} where T1, Tuple{T2, T2} where T2}]] &
+\end{array}
+\]
+
+
+Additionally, it might be argued that static marking of diagonal variables makes subtyping
+ more \emph{predictable}.  As we briefly mentioned, to address
+ the transitivity problem of Sec.~\ref{s:juliabugs},
+\JuliaDev identifies
+covariant and invariant occurrences of each
+variable also on types that appear on the left-hand side of the judgment.
+Diagonal variables are not allowed to have non-diagonal variables
+as lower-bounds.  With this in mind, consider the judgments below:
+\begin{align}
+  [[(Tuple{T, S, S} where T<:Ref{S} where S)]] & [[<:]]  [[Tuple{Any,
+        Q, Q} where Q]]  \label{e:eqst1} \\
+  [[(Tuple{T, S, S} where T<:Ref{S} where S)]] &\ [[</:]]  [[Tuple{Ref{R}, Q, Q} where R where Q]] \label{e:eqst2}
+\end{align}
+Both judgments exhibit the same type on the left-hand side, matched against
+different types.  In the former the variable \([[S]]\) is 
+diagonal: it occurs twice in covariant position, and, since the
+subtype derivation does not use the constraint \([[T<:Ref{S}]]\), its
+invariant occurrence in \([[Ref{S}]]\) is not counted.  In the latter
+the derivation does use the information on the upper bound of
+\([[T]]\); the variable \([[S]]\) is no longer diagonal, and \([[Q]]\)
+(which is diagonal) cannot be instantiated with \([[S]]\).
+Programmers implement the methods of a function one at a time,
+possibly in different files; the lack of \emph{predictability} of
+which variables are diagonal might lead to confusing dispatch
+behaviors.  Static diagonal variable marking 
+identifies the variable \([[S]]\) as non-diagonal in both judgments:
+judgment~(\ref{e:eqst1}) no longer holds and the behavior of the type
+on the left-hand-side thus becomes consistent with~(\ref{e:eqst2}).
+
+As an experiment we have modified our reference implementation of the subtyping
+algorithm to support ahead-of-time normalization and static marking of
+diagonal variables.  This version passes the Julia regression test
+suites, and comparing the two algorithms over the real-world workload highlights  only 
+%difference between the two versions of the subtyping algorithm, except
+41 differences.  Of these, 35 of them reduce to 3 cases in which our modified
+algorithm cannot prove judgments due to our incomplete implementation
+of the \emph{unlift\_union} function.  Since Julia relies on a
+different search mechanism, it would not be affected by these.  The
+remaining 6 are interesting: the
+\emph{typeof} function sometimes behaves differently on a normalized
+type, affecting the subtyping of \([[Type]]\) types.  For instance,
+\([[typeof(Tuple{Ref{T} where T})]]\) returns \([[DataType]]\), but
+if the argument is normalized,  \([[typeof(Tuple{Ref{T}} where
+    T)]]\) returns \([[UnionAll]]\).
+
+Summarizing: in theory subtyping based on ahead-of-time
+normalization and static marking of diagonal variables
+might have some benefits.  However, normalization results in
+explosion of types' size, which is unacceptable for the actual
+implementation of Julia.  It is an open question whether a space-efficient subtyping
+algorithm can implement this revised relation.
+
+
+\subsection{Intersection Types and Symmetric \ottdrulename{union\_left}}\label{s:sub-revised-intersection}
+
+We have seen in Sec.~\ref{s:specsubtype} that rule
+\ottdrulename{R\_left} allows arguably incorrect judgments to be
+derived because it propagates the new upper bound for the right
+variable, instead of the intersection of the old and
+\begin{wrapfigure}{r}{4.5cm}
+  \vspace{-4mm}
+\mbox{}\hspace{3mm}  \begin{minipage}{4cm}
+\[
+\ottusedrule{\ottdruleRXXleftXXmeet{premisenamelayout=none}}
+\]
+\end{minipage}
+\end{wrapfigure}
+new upper bounds.  An hypothetical correct rule appears in the inset.
+% Without native support for intersection types, c
+Computing the
+intersection of two arbitrary Julia types is a hard problem.
+Julia code-base includes a complex algorithm that computes an
+approximation of intersection of two types, used internally to compute
+dataflow informations.  However this algorithm is too slow (and bug-ridden)
+to be integrated in the subtype algorithm.  It should be noted that
+our counterexample is artificial and is unlikely to appear in the
+programming practice (e.g.\ it did not appear in the subtype calls we
+logged on real-world workloads, and
+it was not reported before), so there is a tradeoff between the extra
+complexity added to the implementation and the benefit of a more
+correct relation.  In reply to our call,
+Julia developers have introduced a \code{simple_meet} function which
+computes intersections for simple cases; our counterexample has not
+been addressed yet.
+
+%% An ambitious redesign of Julia's \emph{internal} type language, that
+%% would include native intersection types, has been considered, but no
+%% steps have been undertaken in this direction.  This is an ambitious
+%% research project on its own.
+
+As an aside note, we remark that support for intersection types would
+enable the alternative 
+\begin{wrapfigure}{r}{6.2cm}
+  \vspace{-4mm}
+\mbox{}\hspace{0mm}  \begin{minipage}{6cm}
+\[
+\ottusedrule{\ottdruleunionXXleftXXalt{premisenamelayout=none}}
+\]
+\end{minipage}
+\end{wrapfigure}
+formulation of rule \ottdrulename{union\_left} in the inset.  The
+\(\textit{merge}\) function returns an environment in which, for each
+variable, the lower bound is the union of all the lower bounds for the
+variable in \([[E1]]..[[En]]\), and the upper bound is the intersection of
+all the upper bounds for the variable in \([[E1]]..[[En]]\).  In this
+formulation the order of the types in the list \([[t1]]..[[tn]]\) is
+obviously irrelevant for subtyping, a property non-trivial to prove in
+the current formulation.  
+
+
+\section{Related work}\label{s:related-work}
+
+Surprisingly for a dynamic language, Julia's subtype relation is
+defined over a rich grammar of types, which often is the prerogative of
+statically-typed programming languages.
+%% that includes fully-fledged union and existential
+%% types.  Union types are not unique, but presence of distributivity and
+%% existential types make subtyping reminiscent of subtyping in statically
+%% typed languages.
+%% Table~\ref{subtbl} on page~\pageref{subtbl} summarized  the features 
+%% Julia subtyping provided.
+%% Certain features absent from Julia, such as arrow types and intersection
+%% types, are available in other systems.
+
+Languages with multimethods differ on whether  parametric 
+polymorphism is supported or not.  Most previous efforts focused on non-polymorphic
+types, such as Cecil~\cite{Chambers94}, Typed Clojure~\cite{Tobin16}, and
+MultiJava~\cite{clifton2000multijava}. Subtyping is used to check that
+classes implement all of the required methods of their supertypes. The
+subtype relations are defined over covariant tuples and discrete
+unions.  Approaches that combine multimethods
+with parametric polymorphism are more involved. The earliest work,
+ML<:~\cite{Bourdoncle97}, extends ML with subtyping and multimethods and
+shows that the type system is sound and decidable by showing that the
+constraint solving system that it uses to handle both subtyping and pattern
+matching is decidable.  Following the ML polymorphism, types have only
+top-level quantifiers (for example, $\forall \alpha.\texttt{list}[\alpha]$
+is allowed but not $\texttt{list}[\forall \alpha.\texttt{list}[\alpha]{]}$),
+with subtyping being defined over monotypes.  Constraints on type
+variables
+partially model union types: for instance, the type $\forall
+\alpha.(\texttt{int}{<:}\alpha, \texttt{bool}{<:}\alpha).\alpha$ can be
+understood as the set union of \LJCODE{int} and \LJCODE{bool}.  Due to the
+lack of nesting quantifiers, this does not equate to Julia's union types.
+
+Universal polymorphism and parametric multimethods have been proposed
+in Mini-Cecil~\cite{Litvinov98,Litvinov03}.  Similar to ML<:,
+universal types have only top-level quantifiers.
+Fortress~\cite{Allen11}, in addition, supports arrow types, and
+internally uses both universal and existential types, with top-level
+quantifiers.
+Mini-Cecil and Fortress both use a constraint generation strategy to resolve
+subtyping; they support union and intersection types but do not provide
+distributivity ``in order to simplify constraints
+solving''~\cite{Litvinov03}.  For Mini-Cecil typechecking is
+decidable. Fortress argued decidability based on~\cite{Castagna94}, though
+no proof is provided.
+
+\citet{Frisch02, Frisch08} studies the semantic interpretation of subtyping
+with union, intersection, negation types, and function types. Types are
+interpreted as sets of values; base types have their own denotation, and all
+the operators on types correspond to the equivalent set theoretical
+operations.  Subtyping is defined semantically as inclusion of the sets
+denoted by types. The main challenge of the approach is due to the function
+types. However, only one type operator, namely, reference types, is
+described as an extension.  An important contribution was a sound and
+complete algorithm to decide semantic subtyping.  The algorithm crucially
+relies on semantic properties of their domain, in particular that types can
+be rewritten in disjunctive-normal form. As we have seen, Julia does not
+fully embrace semantic subtyping, and due to interactions
+between union types, invariant constructors, and existential types,
+search is considerably more complex.
+%and due to invariance of type application,
+%Julia types cannot be rewritten in disjunctive-normal form.
+\cite{DBLP:conf/popl/Castagna0XILP14, DBLP:conf/popl/Castagna0XA15} extended
+their system with parametric polymorphism: terms with type variables are
+first compiled away to a variable-free core language with a type-case
+construct. Similar to~\cite{Frisch02, Frisch08}, their interpretation of
+types differs from Julia's.
+
+Subtyping of union types in Julia builds on~\cite{Vouillon04}, which
+proposes an algorithm to decide subtyping of union types in a statically
+typed language with functions and pairs but without union/pair
+distributivity.  The same paper also considers an extension of the language
+with ML-style polymorphism and co-/contravariant type constructors, but not
+invariant ones.
+
+Bounded existential types have been used to model Java
+wildcards~\cite{Cameron08, Tate11}: for instance, the wildcard type
+\LJCODE{List<?>} can be represented as an existential type
+\LJCODE{$\exists$T.List<T>}.  Wildcards are less expressive than where-types
+in Julia, because they cannot denote types such as
+\LJCODE{$\exists$T.List<List<T>>} while \LJCODE{List<List<?>>} corresponds
+to \LJCODE{List<$\exists$T.List<T>>}.  Nevertheless, inexpressible types may
+appear during typechecking, and therefore the formal models use the full
+grammar of existential types, and so does subtyping.  Java wildcards do not
+have to deal with structural type constructors of Julia, such as union
+types, covariant tuples, and their distributivity.  This allows for simpler
+subtyping rules for existential types that rely on well-developed machinery
+of unification and explicit substitution for type variables.  Subtyping of
+wildcards with union and intersection types are studied
+in~\cite{Smith08}. Though the paper mentions that a distributivity rule is a
+desired extension of subtyping, the rule is omitted due to a ``tedious
+normalization steps'' that would have been needed.  As our experience shows,
+in presence of invariant constructors normalization does not solve all the
+problems, and should be accompanied by ``unlifting unions'' (recall the
+example \([[Ref{Union{Tuple{Int},Tuple{Bool}}} <: Ref{Tuple{T}} where
+    T]]\)).
+
+In type systems with bounded existential types, as well as type systems with
+nominal subtyping and variance, decidability of subtyping has been a major
+concern~\cite{Kennedy07,10.1007/978-3-642-10672-9_10}. 
+By design, Julia lacks language features that are
+known to cause undecidability.  Firstly, unlike in traditional existential
+types~\cite{Pierce92}, types such as $\exists
+\texttt{T}_{t_1}^{t_2}.\texttt{T}$ are instantaneously rewritten into the
+upper bound of \([[T]]\) by the frontend and do not appear in subtyping.
+Secondly, unlike in Java, where subtyping has been proved
+undecidable~\cite{Grigore:2017:JGT:3009837.3009871}, neither of the
+following is allowed in Julia: recursive bounds on type variables
+(e.g. \LJCODE{Ref\{T\} where T<:Foo\{T\}})~\cite{10.1007/978-3-642-10672-9_10}, 
+contravariant type constructors~\cite{Kennedy07},
+existential types in type definitions (e.g. \LJCODE{struct Foo\{T\} <:
+  Bar\{S>:T\} where S})~\cite{Tate11}.  An unpublished manuscript on
+decidability of type checking for Java wildcards~\cite{Mazurak05}, while
+failing on modeling of a particular language
+feature~\cite{ZdancewicBuggy}, develops a formal machinery for updating
+environments which resembles ours.
+%a lot, though unknown to us during the work.
+
+A simplified kernel of the subtype relation was documented in Bezanson PhD
+thesis~\cite{Bezanson15}, together with a minimal Julia implementation of
+the algorithm.  This effort introduced some ideas: for
+example, it sketches the strategy to update the bounds on type
+variables. But it was neither complete nor correct, and reflected an older
+version of Julia's type system.  In particular, it ignored the subtle rules
+that govern propagation of the constraints, and the exist/forall quantifier
+inversion; it did not support user-defined parametric types or the diagonal
+rule.
+
+
+
+\section{Conclusion}  
+
+We have provided a specification of the subtype relation of the Julia
+language.  In many systems answering the question whether \([[t1 <: t2]]\)
+is an easy part of the development.  It was certainly not our expectation,
+approaching Julia, that reverse engineering and formalizing the subtype
+relation would prove to be the challenge on which we would spend so much of
+our time and energy. As we kept uncovering layers of complexity, the
+question whether all of this was warranted kept nagging us, so we looked for
+ways to simplify the subtype relation.  We did not find any major feature
+that could be dropped. Indeed, we carried out static and dynamic analysis of
+the core libraries, as well as of 100 popular Julia packages, and found that
+both language implementors and end-users avail themselves of the full power
+of the type sublanguage. The usage of the advanced features of Julia type
+system is widespread in both groups.  Our formalization enables the study of
+the metatheory of the subtype relation; the system is intricate and even
+simple properties require complex reasoning.  Additionally, it is not
+\emph{a priori} clear if it is possible to define the subtype relation in a
+more declarative style.  Arguably this would be a research contributions in
+its own right.
+
+As a separate contribution, to validate our formalization and to explore the
+implementation challenges of the subtype algorithm, we have provided a
+proof-of-concept implementation of subtyping, written in Julia, that closely
+mirrors our specification and relies on a simple search strategy. Our
+experimental results show that this implementation captures the real subtype
+relation, and is useful in identifying issues in the Julia implementation,
+but does not provide the same level of performance as the optimized C code
+of the production implementation.
+
+\begin{acks}
+   The authors would like to thank Ross Tate and Ryan Culpepper for
+   their valuable feedback.  This project has received funding from
+   the \grantsponsor{JanERC}{European Research Council (ERC)}{} under
+   the European Union's Horizon 2020 research and innovation programme
+   (grant agreement No.~\grantnum{JanERC}{695412}), the
+   \grantsponsor{JanNSF}{NSF}{} (award \grantnum{JanNSF}{1544542} and
+   award \grantnum{JanNSF}{1518844}) as well as
+   \grantsponsor{JanONR}{ONR}{} (award \grantnum{JanONR}{503353}).
+
+\end{acks}
+
+\bibliography{bib/lj.bib}
+
+
+\appendix
+\section{The typeof(t) function}\label{s:apptypeof}
+
+\begin{figure}
+  \hrule
+  \medskip
+    \[
+\begin{array}{rcl}
+\multicolumn{3}{l}{ [[typeof(a)]] = [[typeof(simplify(a), empty)]]} \\[3mm]
+[[typeof(t,G) = DataType]] & \textbf{\small if} & [[iskind(t)]] \\
+                       & \textbf{\small or} & [[t = Any]]    \\
+                       & \textbf{\small or} & [[t = Tuple{t1,..,tn}]] \textbf{\small \ \ \ and\ \ \ } \forall [[i]], [[typeof(ti,G)]] \\
+                       & \textbf{\small or} & [[t = T]] \textbf{\small \ \ \ and\ \ \ } [[T in G]]  \\
+                       & \textbf{\small or} & t = [[(t where t1<:T<:t2){t'}]] \textbf{\small \ \ \ and\ \ \ } [[typeof(t',G)]]  \\ 
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[typeof(t1,G)]] \textbf{\small \ \ \ and\ \ \ } [[typeof(t2,G)]] \textbf{\small \ \ \ and\ \ \ } [[ t1 <: t' <: t2 ]] \\
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[ typeof(t[t'/T], G) = DataType ]]   \\
+                       & \textbf{\small or} & [[t = name]] \textbf{\small \ \ \ and\ \ \ } [[tds |=| attr name{} <: t']]  \\
+                       & \textbf{\small or} & [[t = name{t1,..,tn}]] \textbf{\small \ \ \ and\ \ \ } \forall [[i]], [[typeof(ti,G)]]  \\ 
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[ tds |=| attr name{t'1<:T1<:t''1,..,t'n<:Tn<:t''n} <: t''']]  \\
+                       &    & \textbf{\small \ \ \ and\ \ \ } \forall [[i]], \textit{fv}([[t'i]],[[ti]],[[t''i]]) = \emptyset\ \Rightarrow\ [[t'i <: ti <: t''i]]  \\[3mm]
+[[typeof(t,G) = UnionK]]    & \textbf{\small if} & [[t = Union{t1,..,tn}]] \textbf{\small \ \ \ and\ \ \ } \forall [[i]], [[typeof(ti,G)]]  \\
+                       & \textbf{\small or} & [[t = (t where t1<:T<:t2){t'}]] \textbf{\small \ \ \ and\ \ \ } [[typeof(t',G)]]  \\
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[typeof(t1,G)]] \textbf{\small \ \ \ and\ \ \ } [[typeof(t2,G)]] \textbf{\small \ \ and\ \ } [[t1 <: t' <: t2]] \\
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[typeof(t[t'/T], G) = UnionK]] \\[3mm]
+[[typeof(t,G) = UnionAll]] & \textbf{\small if} & [[t = t1 where T]]  \textbf{\small \ \ \ and\ \ \ }  [[typeof(t1, T;G)]] \\
+                       & \textbf{\small or} & [[t = (t where t1<:T<:t2){t'}]] \textbf{\small \ \ \ and\ \ \ } [[typeof(t',G)]]  \\
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[typeof(t1,G)]] \textbf{\small \ \ \ and\ \ \ } [[typeof(t2,G)]] \textbf{\small \ \ and\ \ } [[t1 <: t' <: t2]] \\
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[typeof(t[t'/T], G) = UnionAll]]  \\
+                       & \textbf{\small or} & [[t = name]] \textbf{\small \ \ \ and\ \ \ } [[ tds |=| attr name{T1,..,Tn} ]] \\
+                       & \textbf{\small or} & [[t = name{t1,..,tn}]] \textbf{\small \ \ and\ \ } \forall [[i]], [[typeof(ti,G)]]  \\
+                       &    & \textbf{\small \ \ \ and\ \ \ } [[tds |=| name{t'1<:T1<:t''1,..,t'n<:Tn<:t''n , DOTS} <: t''' ]] \\
+&    & \textbf{\small \ \ \ and\ \ \ } \forall [[i]], \textit{fv}([[t'i]],[[ti]],[[t''i]]) = \emptyset\ \Rightarrow\ [[t'i <: ti <: t''i]] \\[3mm]
+[[typeof(v,G)]] = ... & & \textit{return the type tag of the value } [[v]]
+\end{array}
+\]
+
+\hrule  
+  \caption{The \([[typeof(t)]]\) function.}
+  \label{f:typeof}
+\end{figure}
+
+Julia's \([[typeof]]\){} function returns the concrete
+type of each value.  Since types are themselves values, it is
+legitimate to invoke \([[typeof]]\) on them, and the types
+\([[DataType]]\), \([[Union]]\)\,{}, and \([[UnionAll]]\) play the
+role of kinds.  Indeed, the auxiliary function \([[iskind(t)]]\) returns
+true if \([[t]]\) is \([[DataType]]\), or \([[Union]]\)\,{}, or
+\([[UnionAll]]\)).  Since the \([[typeof]]\) function
+plays a role in the definition of subtyping, we provide
+its formalization in Fig.~\ref{f:typeof}.  We use an environment
+\([[G]]\) to store the type variables in scope.  We write
+\([[typeof(t,G)]]\) as a shorthand for there exists \([[t']]\) such
+that \([[typeof(t,G) = t']]\).
+
+We have seen that Julia's frontend implicitly performs several
+simplifications when processing types; for instance, \([[T where T]]\)
+is replaced by \([[Any]]\), or \([[Union{Int,Int}]]\) is replaced by
+\([[Int]]\); these simplifications must be taken explicitly into
+account when formalizing the \([[typeof]]\) relation.  The auxiliary
+function \([[simplify(t)]]\) performs the following simplification
+steps:
+\begin{itemize}
+  \item simplify trivial \([[where]]\) constructs, e.g.: replace \([[T
+      where T <: t2]]\) by \([[t2]]\) and replace \([[t where T]]\)
+    by \([[t]]\) whenever \([[T]] \not\in \textit{fv}([[t]])\);
+  \item remove redundant \([[Union]]\)\, types, e.g.: replace
+      \([[Union{t}]]\) by \([[t]]\);
+    \item remove duplicate and
+      obviously redundant types from \([[Union{t1,..,tn}]]\) types.
+\end{itemize}
+Given a list of types \([[t1]], ..,[[tn]]\), a type \([[ti]]\) is obviously
+redundant whenever there exists a type \([[tj]]\) which is its supertype
+given an empty variable environment.  These simplifications are guided by
+pragmatic considerations rather than semantic issues.  As such they tend to
+vary between Julia versions, and we do not explicitly formalize them; our
+reference implementation mimics the simplification behavior of Julia~0.6.2,
+apart for the issue described in Sec.~\ref{s:juliabugs}.
+
+The function~\([[typeof(t)]]\) returns \([[UnionK]]\) if the type \([[t]]\),
+after simplification or instantiation of trailing \([[where]]\)
+constructs, is a union.  The case for \([[UnionAll]]\) is similar,
+except that trailing \([[where]]\)
+constructs and the instantiation of user defined parametric types must
+be taken into account.  In
+all other cases, a type has the \([[DataType]]\) kind.
+
+The
+\([[typeof]]\) function additionally checks that a type is
+well-formed, and in particular that, for all type variable
+instantiations, all actual types respect the bounds of binding
+variable.  This check cannot be performed if the bounds or the
+variable itself have free variables, and in some cases Julia allows
+unsatisfiable bounds to be defined.  For instance, 
+the type \( [[ Foo{S} where S]] >:[[ String ]] \) is accepted even assuming that
+\([[Foo]]\) is declared as \(
+  [[abstract]]\ \textsf{type}\ [[Foo]]\{[[T]]\!\![[<:]]\!\![[Int]]\}\ \textsf{end}
+  \). Since there is no type that is subtype of \([[Int]]\) and supertype of
+  \([[String]]\), this type denotes an empty set of values.
+  Well-formedness of type-definitions can be checked along
+similar lines, keeping in mind that all parameters bind in the
+supertype, and each parameter binds in all bounds that follow.
+
+
+\section{Issues reported to Julia developers}\label{a:appendixissues}
+
+\input{issuestext}
+
+\end{document}
+
