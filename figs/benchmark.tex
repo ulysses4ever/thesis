@@ -1,0 +1,59 @@
+\lstdefinestyle{jterm}{
+    basicstyle=\scriptsize\ttfamily,
+    moredelim=[is][\bfseries\color{Red}]{a@}{a@},
+    moredelim=[is][\color{MidnightBlue}]{b@}{b@},
+    moredelim=[is][\bfseries\color{OliveGreen}]{`}{`},
+}
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[b]{0.49\textwidth}
+\centering
+\begin{lstlisting}[language=julia,style=jterm]
+function id(x)
+  (rand() == 4.2) ? "x" : x
+end
+
+
+function pisum()
+  sum = 0.0
+  for j = 1:500
+    sum = 0.0
+    for k = 1:10000
+      sum += id(1/(k*id(k)))
+    end
+  end
+  sum
+end
+\end{lstlisting}
+\caption{Microbenchmark, redacted}
+\end{subfigure}
+%
+% \hspace{2mm}
+\begin{subfigure}[b]{0.498\textwidth}
+\begin{lstlisting}[style=jterm]
+`julia>` @code_warntype id(5)
+Variables
+  #self#b@::Core.Compiler.Const(id, false)b@
+  xb@::Int64b@
+Bodya@::Union{Int64, String}a@
+1 - %1 = Main.rand()b@::Float64b@
+|   %2 = (%1 == 4.2)b@::Boolb@
++--      goto #3 if not %2
+2 -      return "x"
+3 -      return x
+
+`julia>` @code_warntype pisum()
+...
+|   %20 = kb@::Int64b@
+|   %21 = Main.id(k)a@::Union{Int64, String}a@
+\end{lstlisting}
+\caption{Julia session}
+%
+\end{subfigure}
+\caption{A Julia microbenchmark (a) illustrating performance implications
+  of careless coding practices: changing \c{id} function to return
+  values of different types leads to longer execution
+  because of the \c{Union} type of \c{id(..)}, which propagates to \c{pisum} (b).}%
+\label{ide}
+\end{figure}

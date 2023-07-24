@@ -2,7 +2,7 @@
 \RequirePackage{silence} % :-\
 \WarningFilter{scrreprt}{Usage of package `titlesec'}
 \WarningFilter{scrreprt}{Usage of package `tocloft'}
-% \WarningFilter{titlesec}{Non standard sectioning command}
+\WarningFilter{titlesec}{Non standard sectioning command}
 \documentclass[oneside,openright,titlepage,numbers=noenddot,
 headinclude,footinclude,cleardoublepage=empty,abstract=on,
 BCOR=5mm,paper=a4,fontsize=11pt,
@@ -24,7 +24,9 @@ dvipsnames
 
 \input{titletoc}
 
-\input{ch1-intro}
+\input{intro}
+
+\input{ch1-background}
 
 \input{ch2-empirical}
 
