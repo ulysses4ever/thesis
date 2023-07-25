@@ -1,1 +1,34 @@
 \chapter{Approximating Type Stability Statically}\label{chap:approx}
+
+Chapters~\ref{sec:empirical} and~\ref{sec:jules} consider type stability as it
+relates to program \emph{execution}: chapter~\ref{sec:empirical} analyzes Juila
+VM state after test suites ran, and chapter~\ref{sec:jules} models a
+type-specializing just-in-time compiler that does its main job at the run time.
+In this chapter, I set to approximate the property of type stability for
+arbitrary Julia code statically, without running the code in question.
+
+\paragraph{Note on Dropping Type Groundedness} It turns out that attempts to
+infer type groundedness statically fail fast: this is a too low-level of
+notion requiring us to reason on a level of intermediate representation, and at
+that level precision gets lost very fast. The good news is that, as we learned
+in~\chapref{sec:jules}, type groundedness is based off calling type-stable
+API, so being able to provide such API should be enough for a careful client.
+Therefore, in this chapter we focus on analyzing type stability of methods, and
+leave type groundedness off.
+
+\section{Why Approximate?}
+
+Explaining why inferring type stability is hard requires a definition of type
+stability. So far, we approached the definition twice: informally
+in~\ref{ssect:ts-informal} and formally in~\ref{sec:stability-formal}.
+The original informal
+definition does not take into account the distinction between concrete and
+abstract types (and hence anything can be declared type stable).
+Building upon the formal definition (that does acknowledge the distinction
+between abstract and concrete types)
+we provide another informal definition to explain intuitions behind this
+chapter, but we
+\begin{definition}[Type Stability, Informally]
+  A Julia method is called \emph{type stable} if for any concrete type of the
+  input, it is possible to infer a concrete type of the return value.
+\end{definition}
