@@ -94,7 +94,9 @@ to type inference and type-based optimizations.
 In this section, I give an overview of the appropriate coding discipline, and
 explain how it enables optimizations.
 
-\paragraph{Performance.} To illustrate performance implications of careless
+\subsection{Juila Performance}\label{ssect:perf}
+
+To illustrate performance implications of careless
 coding practices, consider Fig.~\ref{ide}, which displays a method for one of
 the Julia microbenchmarks, \c{pisum}. For the purposes of this example, we
 have added an identity function \c{id} which was initially implemented to
@@ -123,7 +125,8 @@ any operation performed therein. Second, it is harder for
 the compiler to devirtualize and inline consecutive calls, thus requiring
 dynamic dispatch.
 
-\paragraph{Type Stability}
+\subsection{Type Stability}\label{ssect:ts-informal}
+
 Julia's compilation model is designed to accommodate source programs
 with flexible types, yet to make such programs efficient. The compiler, by
 default, creates an \emph{instance} of each source method for each distinct tuple of
@@ -200,23 +203,9 @@ For brevity, when the context is clear, we will refer to type stability and
 type groundedness as stability and groundedness in what follows.
 }
 
-\paragraph{Flavors of stability.}
+\subsection{Flavors of Type Stability}
 
-Type stability is an inter-procedural property, and in the worst case, it can depend
-on the whole program. Consider the functions of Fig.~\ref{fla}. Function \c{f0}
-is trivially type unstable, regardless of the type of its input: if \c{good(x)}
-returns true, \c{f0} returns an \c{Int64} value, otherwise \c{f0} returns a
-\c{String}. Function \c{f1} is trivially type stable as all control-flow paths
-return a constant of \c{Int64} type. Function \c{f2} is type stable as
-long as the negation operator is type stable and returns a value of the same type
-as its argument. As an example, we show a method \c{-(::Float64)} that causes
-\c{f2(::Float64)} to lose type stability. This is a common bug where the function
-\c{(-)} either returns a \c{Float64} or \c{Int64} due to the constant \c{0} being
-of type \c{Int64}.  The proper, Julia-style implementation for this method is
-to replace the constant \c{0} with \c{zero(x)}, which returns the zero value
-for the type of \c{x}, in this case \texttt{\small0\!.\!0}.
-
-\begin{figure}[h]\footnotesize
+\begin{figure}[t]\footnotesize
 \begin{minipage}{4cm}\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
 function f0(x)
   if (good(x))
@@ -257,11 +246,25 @@ end
 \Description{Several simple variants of a type-(un)stable function.}
 \end{figure}
 
+Type stability is an inter-procedural property, and in the worst case, it can depend
+on the whole program. Consider the functions of Fig.~\ref{fla}. Function \c{f0}
+is trivially type unstable, regardless of the type of its input: if \c{good(x)}
+returns true, \c{f0} returns an \c{Int64} value, otherwise \c{f0} returns a
+\c{String}. Function \c{f1} is trivially type stable as all control-flow paths
+return a constant of \c{Int64} type. Function \c{f2} is type stable as
+long as the negation operator is type stable and returns a value of the same type
+as its argument. As an example, we show a method \c{-(::Float64)} that causes
+\c{f2(::Float64)} to lose type stability. This is a common bug where the function
+\c{(-)} either returns a \c{Float64} or \c{Int64} due to the constant \c{0} being
+of type \c{Int64}.  The proper, Julia-style implementation for this method is
+to replace the constant \c{0} with \c{zero(x)}, which returns the zero value
+for the type of \c{x}, in this case \texttt{\small0\!.\!0}.
 The example of function \c{f2} illustrates the fact that stability is a
 whole-program property. Adding a method may cause some, seemingly unrelated,
 method to lose type stability.
 
-\paragraph{Stability versus groundedness}
+\subsection{Type Stability Versus Type Groundedness}
+
 Type stability of a method is important for the groundedness of its callers.
 Consider the function \c{h(x::Int64)=g(x)+1}. If \c{g(x)=x}, it follows that
 \c{h} is both stable and grounded, as \c{g} will always return an \c{Int64}, and
@@ -286,8 +289,9 @@ However, stability of callees is not a sufficient condition for the efficiency
 of their callers: the callers themselves need to strive for type groundedness,
 which requires eliminating type imprecision from control flow.
 
-\ADD{
-\paragraph{Patterns of instability.} There are several code patterns
+\subsection{Patterns of Instability}
+
+There are several code patterns
 that are inherently type unstable. For one, accessing abstract fields of
 a structure is an unstable operation:
 the concrete type of the field value depends on the struct value,
@@ -303,9 +307,8 @@ modeled with subtyping in Julia. Take a hierarchy of an abstract type \c{Expr}
 and its two concrete subtypes, \c{Lit} and \c{BinOp}.
 Such a hierarchy is convenient, because
 it allows for an \c{Expr} evaluator written with multiple dispatch:
-}
 \begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
-run(e :: Lit)   = ...                       run(e :: BinOp) = ...
+run(e :: Lit) = ...                       run(e :: BinOp) = ...
 \end{lstlisting}
 If we want the evaluator to be called with the result of a function
 \c{parse(s :: String)}, the latter cannot be type stable: \c{parse} will return
