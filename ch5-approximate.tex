@@ -1,7 +1,40 @@
 \chapter{Approximating Type Stability Statically}\label{chap:approx}
 
+\lstset{language=julia}
+
+\paragraph{Plan of attack}
+\begin{enumerate}
+
+\item
+Inferring type stability versus inferring types
+
+\item
+Method: Using Julia's built-in type inferencer to approximate type stability.
+
+\item
+Basic algorithm and its features.
+
+- Corner cases, termination, fuel.
+
+- Limitations: incompleteness and unsoundness.
+
+- Relation to Julia subtyping.
+
+\item
+Dealing with unbounded existentials / Any's: the types DB idea.
+
+\item
+Implementation.
+
+\item
+Evaluation: results on 10 popular Julia packages.
+
+- Processing Julia modules: pitfalls and workarounds.
+
+\end{enumerate}
+
 Chapters~\ref{sec:empirical} and~\ref{sec:jules} consider type stability as it
-relates to program \emph{execution}: chapter~\ref{sec:empirical} analyzes Juila
+relates to program \emph{execution}: chapter~\ref{sec:empirical} analyzes Julia
 VM state after test suites ran, and chapter~\ref{sec:jules} models a
 type-specializing just-in-time compiler that does its main job at the run time.
 In this chapter, I set to approximate the property of type stability for
@@ -16,19 +49,85 @@ API, so being able to provide such API should be enough for a careful client.
 Therefore, in this chapter we focus on analyzing type stability of methods, and
 leave type groundedness off.
 
-\section{Why Approximate?}
+\section{Inferring Type Stability versus Inferring Types}
+% \section{Inferring Types(tability)} ha-ha
 
-Explaining why inferring type stability is hard requires a definition of type
-stability. So far, we approached the definition twice: informally
+Explaining my method to infer type stability requires a definition for it.
+So far, I approached the definition twice: informally
 in~\ref{ssect:ts-informal} and formally in~\ref{sec:stability-formal}.
 The original informal
 definition does not take into account the distinction between concrete and
-abstract types (and hence anything can be declared type stable).
+abstract types: using this loophole, any code can be declared type stable
+because it is always ``possible to predict the type of the output'' as \c{Any}.
 Building upon the formal definition (that does acknowledge the distinction
 between abstract and concrete types)
 we provide another informal definition to explain intuitions behind this
-chapter, but we
+chapter.
 \begin{definition}[Type Stability, Informally]
   A Julia method is called \emph{type stable} if for any concrete type of the
   input, it is possible to infer a concrete type of the return value.
 \end{definition}
+
+A natural idea for inferring type stability in Julia would be to formulate it as
+a forward static analysis: being an abstract or concrete type is one bit of
+information that has a known value at the input (concrete) and should be
+propagated to the output, possibly changing on the way.
+
+To test the static analysis idea, consider a positive example first: the
+identity function.
+% TODO: there's a weird break in the listing near page break (see PDF)
+\begin{lstlisting}
+  function id(x)
+    x
+  end
+\end{lstlisting}
+%
+It is straightforward to infer that, given any concrete input type, the return
+value is also concretely typed: the one bit of information carries over to the
+result in one step.
+
+Another example, the increment function, shows that the task becomes unwieldy fast.
+%
+\begin{lstlisting}
+  function inc(x)
+    x + 1
+  end
+\end{lstlisting}
+%
+Concreteness of the result returned by \c{inc} depends on the same property of
+the result of the call to \c{+}. In turn, the property of the return type of
+\c{+} depends on which \c{+} method Julia will dispatch to at the run time.
+There are about two hundreds method implementations of \c{+} in the standard
+library alone, and packages add more. Some of those methods are type stable
+(e.g. \c{+(::Int64,::Int64)}), and some of them not (e.g.
+\lstinline|+(::Rational{Bool},::Rational{Bool}|)
+\footnote{%
+  The reason for the
+  \c{+(::Rational\{Bool\},::Rational\{Bool\})} method to be not type
+  stable is not important, but in the nutshell, Julia has made a questionable
+  design decision about the return type of \c{{+}(::Bool,::Bool)}, which in the
+  current implementation is \c{Int}
+  (see discussion \url{https://github.com/JuliaLang/julia/issues/19168}),
+  and when adding two rational numbers with boolean components, depending on the
+  values of the summands, you get back either \c{Rational\{Bool\}} or
+  \c{Rational\{Int\}}.}
+).
+Therefore,
+to infer the property of interest, in general,
+we need to predict which methods are selected at the run time.
+
+The \c{inc} example shows that inferring type stability of Julia code
+requires
+reasoning about which methods will be called to at the run time, which, in a
+language with dynamic dispatch, leads
+to reasoning about the \emph{types} of intermediate values, rather than only
+the concreteness bit. But if we had a tool to compute typing information
+beforehand, we would not need to build a special purpose analysis for type
+stability: it suffices to ask the tool to tell the type of the return value and
+check if that type is concrete. The observation of interactions between type
+stability and type inference can be formulated as the following conjecture.
+
+\begin{conjecture}
+Inferring type stability of a Julia method statically is no easier than doing type
+inference over that method.
+\end{conjecture}
