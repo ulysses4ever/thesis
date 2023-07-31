@@ -184,7 +184,7 @@ The list below also assigns the numbers to each step in our
   the \c{Method} object representing a particular Julia method.
 
   \item The first task of the algorithm is to get the input type of the given
-  method. This is possible querying the \c{sig} field of the method object.
+  method. This is possible through querying the \c{sig} field of the method object.
 
   Building on the example above, we can get the signature of the \c{length}
   method as follows:
@@ -216,4 +216,20 @@ A user can always look under the abbreviation using the \c{dump} function:
       body: Array{T, N} <: DenseArray{T, N}
 \end{verbatim}
 }.
+
+  \item The input type can be either concrete, which, in Julia, means there may
+  be no proper subtypes of that type, or abstract. Still, the choice on the
+  step 3 will enter the loop at least once, because if the input type is
+  concrete, the check holds once trivially (e.g.\ there is exactly one concrete
+  subtype of the concrete type \c{Int} --- it is \c{Int} itself).
+
+  If the input type is abstract, we need a subprocess enumerating all concrete
+  subtypes of it. We discuss an implementation for this below but it suffices to
+  treat is as a black box for now. % TODO: ref to subtyping section?
+
+  In the case of the \c{length} method, the input type, \c{Array}, is abstract
+  because it is an existential type.
+
+  \item Running type inference for a given method and a given concrete type is
+  done through calling the Julia's standard \c{code_typed} function.
 \end{enumerate}
