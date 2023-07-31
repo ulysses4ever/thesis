@@ -131,3 +131,89 @@ stability and type inference can be formulated as the following conjecture.
 Inferring type stability of a Julia method statically is no easier than doing type
 inference over that method.
 \end{conjecture}
+
+A full type inference algorithm would be enough for checking type stability of
+Julia code. Should we build one from scratch? There are two reasons to do
+otherwise.
+\begin{enumerate}
+
+  \item It is not clear that typing Julia as is can yield any meaningful result
+  (more on this see~\cite{Chung23}).
+
+  \item Julia already has a type inference engine built in. We modelled this
+        engine as a black box in~\chapref{chap:jules}. If we end up with a
+        custom algorithm to infer types and analyze type stability based on it,
+        our results may diverge from Julia's.
+\end{enumerate}
+
+\section{An Algorithm To Approximate Type Stability}
+
+If our predictions for type stability are to align with the Julia
+implementation, our analysis should closely model what happens at the run time,
+as described in~\chapref{chap:jules}. The type-specializing JIT-compiler
+from~\chapref{chap:jules} makes optimization decisions based on \emph{concrete
+  input types} with the help of Juila's type inference engine. Our algorithm for
+approximating these decisions statically considers all (or as many as
+possible) allowed concrete input types of a method ---~\figref{fig:infer-ts}.
+
+\input{figs/infer-ts.tex}
+
+Let us consider every step of the algorithm described
+on~\figref{fig:infer-ts} and show its meaning using an example.
+The list below also assigns the numbers to each step in our
+\begin{enumerate}
+
+  \item The input of the algorithm is a Julia method. Methods in Julia are
+  represented by runtime objects of type \c{Method} and can be manipulated as
+  all other objects (e.g. stored in collections, responding to field accesses, etc.).
+
+  For example, consider the \c{length} from the Julia's standard library. We can
+  get the corresponding \c{Method} object using the standard \c{@which} macro
+  applied to an application of the \c{length} method. This can be done in the
+  Julia REPL (signified by the \texttt{julia>} prefix).
+\begin{verbatim}
+  julia> @which length([1,2,3])
+  length(a::Array) in Base at array.jl:215
+\end{verbatim}
+
+  The output shows that the given \c{length}-call will dispatch to the
+  method defined in the \texttt{Base} module (Julia-speak for the standard
+  library). The output also shows the location of the method in the
+  standard library and, most importantly for us, the signature of the
+  method. In fact, what we see here is a pretty-printed representation of
+  the \c{Method} object representing a particular Julia method.
+
+  \item The first task of the algorithm is to get the input type of the given
+  method. This is possible querying the \c{sig} field of the method object.
+
+  Building on the example above, we can get the signature of the \c{length}
+  method as follows:
+\begin{verbatim}
+  julia> m = @which length([1,2,3]);
+
+  julia> m.sig
+  Tuple{typeof(length), Array}
+\end{verbatim}
+
+  A signature of a method will usually have the special singleton function
+  type (\c{typeof(...)}) as the first component, and the rest is (easy to
+  convert to) the type of the input --- an $n$-tuple. In this example, the type of
+  the input is 1-tuple, consisting of the existential array type
+  \c{Array\{T, N\}\ where T where N} abbreviated simply as \c{Array}\footnote{%
+A user can always look under the abbreviation using the \c{dump} function:
+\begin{verbatim}
+  julia> dump(Array)
+  UnionAll
+    var: TypeVar
+      name: Symbol T
+      lb: Union{}
+      ub: Any
+    body: UnionAll
+      var: TypeVar
+        name: Symbol N
+        lb: Union{}
+        ub: Any
+      body: Array{T, N} <: DenseArray{T, N}
+\end{verbatim}
+}.
+\end{enumerate}
