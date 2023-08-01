@@ -230,6 +230,36 @@ A user can always look under the abbreviation using the \c{dump} function:
   In the case of the \c{length} method, the input type, \c{Array}, is abstract
   because it is an existential type.
 
-  \item Running type inference for a given method and a given concrete type is
-  done through calling the Julia's standard \c{code_typed} function.
+  \item Running type inference for a given method and a given concrete input
+  type is done through calling the Julia's standard \c{code\_typed} function.
+  The only issue with the function is that it expects a function object as the
+  part of the input, not a method object. But getting from a method to the
+  corresponding function is possible using the signature field discussed above,
+  and, in particular, the singleton function type living in the first component
+  of the \c{sig} field: accessing the single function object using the function
+  type is possible via the \c{instance} field.
+
+  Running type inference for the \c{length} method and the concrete input type
+  \c{Array\{1, Float64\}} could be done as follows:
+% \begin{minipage}{.9\textwidth}
+% \begin{lstlisting}[style=jterm]
+\begin{verbatim}
+  julia> code_typed(m.sig.parameters[1].instance,
+                    (Array{1, Float64},),
+                    optimize=false)
+  1-element Vector{Any}:
+  CodeInfo(
+  1 - %1 = Base.arraylen(a)::Int64
+  +--      return %1
+  ) => Int64
+\end{verbatim}
+% \end{lstlisting}
+% \end{minipage}
+
+  \item In the running example and for the input type \c{Array\{1, Float64\}}
+  the type inferencer is able to deduce that the return type of \c{length}
+  called with the given input type is \c{Int64}, which is a concrete type
+  according to the standard Julia's \c{isconcretetype} predicate.
+  Following the second decision element on \figref{fig:infer-ts}, we get back to
+  the start of the loop and try another concrete subtype of the input type.
 \end{enumerate}
