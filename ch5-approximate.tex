@@ -13,23 +13,27 @@
 
 % \item
 % Basic algorithm and its features.
-
+% 
 % - Corner cases, termination, fuel.
-
+% 
 % - Limitations: incompleteness and unsoundness.
-
+% 
 % - Relation to Julia subtyping.
 
 % \item
-% Dealing with unbounded existentials / Any's: the types DB idea.
+% Dealing with unbounded existentials / Any's.
+%  - run type inference with Any: concrete result means it's stable
+%  - the types DB idea
+
+% \item 
+% Implementation
+% - User's API (macro and otherwise)?
 
 % \item
-% Implementation. User's API (macro and otherwise)?
-
+% Evaluation
 % - Processing Julia modules: pitfalls and workarounds.
+% - Results on 10 popular Julia packages.
 
-% \item
-% Evaluation: results on 10 popular Julia packages.
 
 % \end{enumerate}
 
@@ -287,8 +291,8 @@ means that possible concrete input types may be:
 
 The issue of termination is close to another one: a search space blow up.
 In the standard library alone, there are over five hundreds immediate subtypes
-of \c{Any} and every concrete subtype of those can be use to instantiate the
-\c{Array} type when inferring stability of \c{length}. Although finite, this
+of \c{Any} and every concrete subtype of those can be used to instantiate the
+\c{Array} type when inferring type stability of \c{length}. Although finite, this
 space can be simply too large to exhaust in a reasonable time.
 
 Our intention is to develop certain heuristics to perform an early termination
