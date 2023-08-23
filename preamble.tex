@@ -154,6 +154,12 @@
   belowskip=\medskipamount, %0em
   escapeinside={(*@}{@*)}
 }
+\lstdefinestyle{jterm}{
+    basicstyle=\scriptsize\ttfamily,
+    moredelim=[is][\bfseries\color{Red}]{a@}{a@},
+    moredelim=[is][\color{MidnightBlue}]{b@}{b@},
+    moredelim=[is][\bfseries\color{OliveGreen}]{`}{`},
+}
 \lstset{
   language=Jules,  extendedchars=true,  basicstyle=\small\ttfamily,
   showstringspaces=false,   showspaces=false,  numberstyle=\small,
