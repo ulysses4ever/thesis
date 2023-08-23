@@ -207,21 +207,22 @@ The list below also assigns the numbers to each step in our algorithm.
   convert to) the type of the input --- an $n$-tuple. In this example, the type of
   the input is 1-tuple, consisting of the existential array type
   \c{Array\{T, N\}\ where T where N} abbreviated simply as \c{Array}\footnote{%
-A user can always look under the abbreviation using the \c{dump} function:
-\begin{verbatim}
-  julia> dump(Array)
-  UnionAll
-    var: TypeVar
-      name: Symbol T
-      lb: Union{}
-      ub: Any
-    body: UnionAll
-      var: TypeVar
-        name: Symbol N
-        lb: Union{}
-        ub: Any
-      body: Array{T, N} <: DenseArray{T, N}
-\end{verbatim}
+A user can always look under the abbreviation using the \c{dump} function.
+%:
+% \begin{lstlisting}[language=julia,style=jterm]
+%   julia> dump(Array)
+%   UnionAll
+%     var: TypeVar
+%       name: Symbol T
+%       lb: Union{}
+%       ub: Any
+%     body: UnionAll
+%       var: TypeVar
+%         name: Symbol N
+%         lb: Union{}
+%         ub: Any
+%       body: Array{T, N} <: DenseArray{T, N}
+% \end{lstlisting}
 }.
 
   \item The input type can be either concrete, which, in Julia, means there may
