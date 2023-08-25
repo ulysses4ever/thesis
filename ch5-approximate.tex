@@ -12,12 +12,16 @@
 % Method: Using Julia's built-in type inferencer to approximate type stability.
 
 % \item
-% Basic algorithm and its features.
-% 
+% Basic algorithm
+% - flowchart, main steps, running example
+
+% \item
+% Enumerating concrete subtypes
+% -
+
+% Meta: features of the algorithm I'd like to discuss at some point.
 % - Corner cases, termination, fuel.
-% 
 % - Limitations: incompleteness and unsoundness.
-% 
 % - Relation to Julia subtyping.
 
 % \item
@@ -273,8 +277,27 @@ A user can always look under the abbreviation using the \c{dump} function.
   if there is any.
 \end{enumerate}
 
-There are two subtle points of the algorithm: termination and enumeration of
-concrete input types.
+There are two main auxiliary procedures that the algorithm relies on: enumeration of
+concrete subtypes of a given input type and type inference over a method with the
+given input type. The latter can be fully outsourced to Julia itself, while the
+former requires separate consideration.
+
+\subsection{Enumeration of Concrete Subtypes}%
+\label{sec:approx:enu}
+
+In Step 3 of the algorithm, we need to generate a concrete
+subtype of the input type. This task does not have a direct implementation in Juila's
+standard library. Although,
+Julia provides a way to query declared subtypes of a given nominal type using the
+\c{subtypes} method. In this subsection, I show how to utilize the \c{subtypes} method
+iteratively to enumerate concrete subtypes of a given type. The procedure goes
+by analyzing the form of the given type.
+
+\begin{description}
+
+  \item[Top and bottom types]
+        The Top type
+\end{description}
 
 \subsection{Termination}%
 \label{sec:term}
@@ -301,18 +324,8 @@ of the algorithm. The simplest heuristic of this sort is to employ a fuel
 parameter that gives an arbitrary upper bound for the number of steps we are
 allowed to perform before we give up.
 
-\subsection{Enumeration of Concrete Input Types}%
-\label{sec:enu}
-
-Another implementation concern is step 3 where we need to generate a concrete
-subtype of the input type. Although, there is no built-in facility for this
-task, Julia allows getting immediate subtypes of a given type using the
-\c{subtypes} method. As our current implementation shows, with enough care, it
-is not hard to enumerate concrete subtypes applying the \c{subtypes} method
-iteratively.
-
 \section{Evaluation}%
-\label{sec:eval}
+\label{sec:approx:eval}
 
 In \chapref{chap:empirical} I analyzed type stability of a corpus of open-source
 Julia packages dynamically via executing test suites of the packages and
