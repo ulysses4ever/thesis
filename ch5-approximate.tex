@@ -25,9 +25,14 @@
 % - Relation to Julia subtyping.
 
 % \item
-% Dealing with unbounded existentials / Any's.
-%  - run type inference with Any: concrete result means it's stable
-%  - the types DB idea
+% State space explosion
+% due to under-constrained types, e.g.:
+% - ''fat'' (i.e. many subtypes) abstract types like Any
+% - unbounded existentials
+%
+% We propose two approaches to fight this problem:
+% - run type inference with Any: concrete result means it's stable
+% - the types DB idea
 
 % \item 
 % Implementation
@@ -282,21 +287,130 @@ concrete subtypes of a given input type and type inference over a method with th
 given input type. The latter can be fully outsourced to Julia itself, while the
 former requires separate consideration.
 
-\subsection{Enumeration of Concrete Subtypes}%
+\subsection{Enumerating Concrete Subtypes}%
 \label{sec:approx:enu}
 
-In Step 3 of the algorithm, we need to generate a concrete
-subtype of the input type. This task does not have a direct implementation in Juila's
-standard library. Although,
-Julia provides a way to query declared subtypes of a given nominal type using the
-\c{subtypes} method. In this subsection, I show how to utilize the \c{subtypes} method
-iteratively to enumerate concrete subtypes of a given type. The procedure goes
-by analyzing the form of the given type.
+\subsubsection{Nominal Hierarchy (Juila's \c{subtypes} method)}
+
+In Step 3 of the algorithm (\figref{fig:infer-ts}), we need to generate a
+concrete subtype of the input type. This task does not have a direct
+implementation in Juila's standard library. The closest counterpart that Julia
+provides is the \c{subtypes} method to query declared subtypes of a given
+nominal type. For example,
+\begin{figure}[h]
+\begin{minipage}{.49\textwidth}
+\begin{lstlisting}[style=jterm]
+julia> subtypes(Signed)
+6-element Vector{Any}:
+ BigInt
+ Int128
+ Int16
+ Int32
+ Int64
+ Int8
+\end{lstlisting}
+\end{minipage}
+~
+\begin{minipage}{.49\textwidth}
+\begin{lstlisting}[style=jterm]
+julia> subtypes(AbstractSet)
+5-element Vector{Any}:
+ Base.IdSet
+ Base.KeySet
+ BitSet
+ Set
+ Test.GenericSet
+
+\end{lstlisting}
+\end{minipage}
+\end{figure}
+
+The challenge here is that the subtype relation in Julia is richer than the
+nominal type hierarchy. For example, if a method declares the type of its input
+as
+\begin{lstlisting}
+  Union{AbstractSet, AbstractRange}
+\end{lstlisting}
+then the method can be called with an argument of type \c{Set\{Int\}}, and,
+therefore, we should be able to discover such a type following the algorithm
+on~\figref{fig:infer-ts}. It is not possible with the \c{subtype} method alone:
+\begin{lstlisting}[style=jterm]
+  julia> subtypes(Union{AbstractSet, AbstractRange})
+  Type[]
+\end{lstlisting}
+which means that from \c{subtypes}' point of view this type has no subtypes (the query
+returns an empty array of elements of the type \c{Type}). Therefore, structural
+types like unions, tuples and existential types need a special treatment.
+
+The \c{subtypes} method does not cover the whole subtyping relation not only
+because it cannot work with structural types but also because it only knows
+about direct declared subtypes: in the subtype chain \c{Int <: Signed <:
+Integer}, \c{subtypes} only knows about \c{Int <: Signed} and \c{Signed <:
+Integer} but not about \c{Int <: Integer}. Thus, we have to build
+the transitive closure manually.
+
+In the following section, I show how to generalize the \c{subtypes} method
+for all Julia types. After that I discuss how to iterate the general version to
+get to the concrete types.
+
+\subsubsection{Enumerating Direct Subtypes}
+
+Our goal is to define a general utility generating direct subtypes of a given
+type, which we call \c{direct_subtypes}.
+% \begin{lstlisting}
+%   const JlType = Any   # type synonym
+%   function direct_subtypes(t :: JlType) :: Vector{JlType} ...
+% \end{lstlisting}
+We do case analysis on the existing Julia kinds and express it as methods
+of the \c{direct_subtypes} function. The implementation largely follows from the
+description of Julia's subtyping relation given in~\cite{oopsla18b}.
+
+The \c{direct_subtypes} utility can only partly be defined via multiple dispatch
+because Julia's kind system does not distinguish all interesting cases for our purpose.
+For example: both \c{Integer} and \c{Tuple\{Integer, Integer\}} are datatypes,
+but the standard \c{subtypes} method cannot do anything meaningful with the second one.
+%
+% good for the Background section, perhaps?
+% Generally, every Julia type is
+% either a union type (kind \c{Union}), an existential type (kind \c{UnoinAll}) or
+% a datatype (kind \c{DataType}), for example:
+% \begin{lstlisting}[style=jterm]
+%   julia> Union{Int, String} isa Union
+%   true
+%   julia> Vector isa UnionAll
+%   true
+%   julia> Int isa DataType
+%   true
+% \end{lstlisting}
+Overall,
+some special types, notably tuple types, fall under the datatype kind. Still,
+existing kinds other than \c{DataType}, are useful.
 
 \begin{description}
 
-  \item[Top and bottom types]
-        The Top type
+  \item[Union Types]
+        Unions in Julia has the kind \c{Union} and a form of \c{Union\{A,B,C\}}
+        with arbitraty number of arguments \c{A, B, C}.
+        Direct subtypes of \c{Union\{A,B,C\}} is the following list of types: \c{[A,B,C]}.
+
+  \item[Existential Types]
+        Existential types in Julia has the kind \c{UnionAll} and a form of
+        \c{Vector{T} where T} commonly abbreviated as \c{Vector}. Every
+        \c{where}-bound type variable has associated upper and lower bounds with
+        default values \c{Any} and \c{Union\{\}} (the top and bottom types),
+        respectively. % TODO
+
+  \item[Datatypes]
+        Non-parametric nominal types defined using the \c{bitstypes} (e.g. \c{Int}) or
+        \c{struct} (e.g. \c{Pair}) qualifiers, as well as fully-instantiated parametric types
+        (e.g. \c{AbstractSet\{Int\}}) can be processed
+        using the \c{subtypes} method (see examples in the previous section):
+% \begin{lstlisting}
+%   function direct_subtypes(t :: DataType) = subtypes(t)
+% \end{lstlisting}
+
+  \item[Tuple Types]
+        Tuple
 \end{description}
 
 \subsection{Termination}%
