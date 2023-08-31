@@ -187,10 +187,13 @@ The list below also assigns the numbers to each step in our algorithm.
   get the corresponding \c{Method} object using the standard \c{@which} macro
   applied to an application of the \c{length} method. This can be done in the
   Julia REPL (signified by the \texttt{julia>} prefix).
-\begin{verbatim}
+
+\begin{minipage}{.92\textwidth}
+\begin{lstlisting}[style=jterm]
   julia> @which length([1,2,3])
   length(a::Array) in Base at array.jl:215
-\end{verbatim}
+\end{lstlisting}
+\end{minipage}
 
   The output shows that the given \c{length}-call will dispatch to the
   method defined in the \texttt{Base} module (Julia-speak for the standard
@@ -204,12 +207,15 @@ The list below also assigns the numbers to each step in our algorithm.
 
   Building on the example above, we can get the signature of the \c{length}
   method as follows:
-\begin{verbatim}
+
+\begin{minipage}{.92\textwidth}
+\begin{lstlisting}[style=jterm]
   julia> m = @which length([1,2,3]);
 
   julia> m.sig
   Tuple{typeof(length), Array}
-\end{verbatim}
+\end{lstlisting}
+\end{minipage}
 
   A signature of a method will usually have the special singleton function
   type (\c{typeof(...)}) as the first component, and the rest is (easy to
@@ -258,20 +264,21 @@ A user can always look under the abbreviation using the \c{dump} function.
 
   Running type inference for the \c{length} method and the concrete input type
   \c{Array\{1, Float64\}} could be done as follows:
-% \begin{minipage}{.9\textwidth}
-% \begin{lstlisting}[style=jterm]
-\begin{verbatim}
+
+\begin{minipage}{.92\textwidth}
+% \begin{verbatim}
+\begin{lstlisting}[style=jterm]
   julia> code_typed(m.sig.parameters[1].instance,
                     (Array{1, Float64},),
                     optimize=false)
   1-element Vector{Any}:
-  CodeInfo(
+   CodeInfo(
   1 - %1 = Base.arraylen(a)::Int64
   +--      return %1
   ) => Int64
-\end{verbatim}
-% \end{lstlisting}
-% \end{minipage}
+\end{lstlisting}
+% \end{verbatim}
+\end{minipage}
 
   \item In the running example and for the input type \c{Array\{1, Float64\}}
   the type inferencer is able to deduce that the return type of \c{length}
@@ -365,10 +372,15 @@ We do case analysis on the existing Julia kinds and express it as methods
 of the \c{direct_subtypes} function. The implementation largely follows from the
 description of Julia's subtyping relation given in~\cite{oopsla18b}.
 
-The \c{direct_subtypes} utility can only partly be defined via multiple dispatch
-because Julia's kind system does not distinguish all interesting cases for our purpose.
-For example: both \c{Integer} and \c{Tuple\{Integer, Integer\}} are datatypes,
-but the standard \c{subtypes} method cannot do anything meaningful with the second one.
+The \c{direct_subtypes} utility can be defined, for the most part, via multiple dispatch
+using Julia's kind system.
+The only special sort of types that does not have a dedicated kind is tuple types.
+purpose. In particular, although tuple types fall under the datatype kind,
+the standard \c{subtypes} method cannot help with tuple types as much as it can with user-defined datatypes.
+For example:
+both \c{Integer} and \c{Tuple\{Integer, Integer\}} are datatypes, but
+\c{subtypes} returns an empty array of types for the latter.
+
 %
 % good for the Background section, perhaps?
 % Generally, every Julia type is
@@ -382,9 +394,10 @@ but the standard \c{subtypes} method cannot do anything meaningful with the seco
 %   julia> Int isa DataType
 %   true
 % \end{lstlisting}
-Overall,
-some special types, notably tuple types, fall under the datatype kind. Still,
-existing kinds other than \c{DataType}, are useful.
+
+% Overall,
+% some special types, notably tuple types, fall under the datatype kind. Still,
+% existing kinds other than \c{DataType}, are useful.
 
 \begin{description}
 
@@ -398,15 +411,30 @@ existing kinds other than \c{DataType}, are useful.
         \c{Vector{T} where T} commonly abbreviated as \c{Vector}. Every
         \c{where}-bound type variable has associated upper and lower bounds with
         default values \c{Any} and \c{Union\{\}} (the top and bottom types),
-        respectively. % TODO
+        respectively. Direct subtypes of an existential type is all
+        instantiations of its variable allowed by the bounds. In particular, we
+        need to compute all subtypes of the upper bound, filter out those not
+        satisfying the lower bound, and use the resulting set of types to
+        instatiate the variable with.
+
+        For example, consider the \c{Vector\{T\} where T<:Signed} type.
+        All subtypes (not only direct or concrete) of \c{Signed} are: \c{BigInt, Int128, Int16, Int32, Int64, Int8}. Therefore, all direct subtypes of the vector type in question are:
+
+\begin{minipage}{.92\textwidth}
+        \begin{lstlisting}
+Vector{BigInt}
+Vector{Int128}
+Vector{Int16}
+Vector{Int32}
+Vector{Int64}
+Vector{Int8}
+        \end{lstlisting}
+\end{minipage}
 
   \item[Datatypes]
         In general, non-parametric nominal types defined using the \c{primitive} (e.g. \c{Int64}) or
         \c{struct} (e.g. \c{Pair}) qualifiers,  can be processed
         using the \c{subtypes} method (see examples in the previous section).%:
-% \begin{lstlisting}
-%   function direct_subtypes(t :: DataType) = subtypes(t)
-% \end{lstlisting}
         These also include fully-instantiated parametric types
         (e.g. \c{AbstractSet\{Int\}}).
 
@@ -417,12 +445,48 @@ existing kinds other than \c{DataType}, are useful.
         array), we need to manually unfold tuple types using the following rule
         \begin{itemize}
           \item direct subtypes of the 0-tuple type is an empty set;
-          \item direct subtypes of a 1-tuple type is the direct subtypes of its
+          \item direct subtypes of a 1-tuple type are the direct subtypes of its
           single type argument;
-          \item direct subtypes of an $n$-tuple type is a Cartesian product of
+          \item direct subtypes of an $n$-tuple type are a Cartesian product of
           direct subtypes of its first component and direct subtypes of the last
           $n-1$ components.
+
+          For example, for an abstract type \c{A} with exactly two declared
+          subtypes \c{B} and \c{C}, the set of direct subtypes of
+          \c{Tuple\{A,A\}} is
+
+\begin{minipage}{.9\textwidth}
+        \begin{lstlisting}
+Tuple{B,B}
+Tuple{B,C}
+Tuple{C,B}
+Tuple{C,C}
+        \end{lstlisting}
+\end{minipage}
+
         \end{itemize}
+
+        % % TODO: This section is to be moved to the discussion of state space size.
+        % % General idea (which is not yet expressed in this text) is that we
+        % probably don't want to enumerate all singleton types.
+  % \item[Special Singleton Types]
+  %       In Julia, every type with a single instance is called singleton type.
+  %       If it is a regular user-defined type (like \c{Val} from the standard
+  %       library), then it can be processed using the general strategy described
+  %       above (as a datatype or an existential type, depending on its form).
+  %       But two
+  %       kinds of Julia values has special singleton types:
+  %       \begin{itemize}
+  %         \item Every function has a dedicated \c{typeof}-type (e.g. the
+  %         function \c{sum} has the type \c{typeof(sum)}). The \c{typeof}-types
+  %         are concrete and therefore have an empty set of proper direct
+  %         subtypes. There is a common supertype for all function types called
+  %         \c{Function}. It does not
+  %         \item Type objects have \c{Type{T}} types (e.g. \c{Int} has the
+  %         \c{Type\{Int\}} type). These types
+  %       \end{itemize}
+  %       primitive values can be used as arguments of
+  %       parametric types (e.g. )
 
 \end{description}
 
