@@ -390,7 +390,7 @@ existing kinds other than \c{DataType}, are useful.
 
   \item[Union Types]
         Unions in Julia has the kind \c{Union} and a form of \c{Union\{A,B,C\}}
-        with arbitraty number of arguments \c{A, B, C}.
+        with arbitrary number of arguments \c{A, B, C}.
         Direct subtypes of \c{Union\{A,B,C\}} is the following list of types: \c{[A,B,C]}.
 
   \item[Existential Types]
@@ -401,16 +401,29 @@ existing kinds other than \c{DataType}, are useful.
         respectively. % TODO
 
   \item[Datatypes]
-        Non-parametric nominal types defined using the \c{bitstypes} (e.g. \c{Int}) or
-        \c{struct} (e.g. \c{Pair}) qualifiers, as well as fully-instantiated parametric types
-        (e.g. \c{AbstractSet\{Int\}}) can be processed
-        using the \c{subtypes} method (see examples in the previous section):
+        In general, non-parametric nominal types defined using the \c{primitive} (e.g. \c{Int64}) or
+        \c{struct} (e.g. \c{Pair}) qualifiers,  can be processed
+        using the \c{subtypes} method (see examples in the previous section).%:
 % \begin{lstlisting}
 %   function direct_subtypes(t :: DataType) = subtypes(t)
 % \end{lstlisting}
+        These also include fully-instantiated parametric types
+        (e.g. \c{AbstractSet\{Int\}}).
 
   \item[Tuple Types]
-        Tuple
+        Tuples play a key role in method dispatch because methods with
+        more than one argument have a tuple input type. As the \c{subtypes} method
+        cannot work with tuples (for any input tuple, it returns an empty
+        array), we need to manually unfold tuple types using the following rule
+        \begin{itemize}
+          \item direct subtypes of the 0-tuple type is an empty set;
+          \item direct subtypes of a 1-tuple type is the direct subtypes of its
+          single type argument;
+          \item direct subtypes of an $n$-tuple type is a Cartesian product of
+          direct subtypes of its first component and direct subtypes of the last
+          $n-1$ components.
+        \end{itemize}
+
 \end{description}
 
 \subsection{Termination}%
