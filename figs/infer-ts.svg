@@ -12,7 +12,7 @@
       &lt;root&gt;
         &lt;mxCell id=&quot;0&quot; /&gt;
         &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot; /&gt;
-        &lt;mxCell id=&quot;3tuBuWaezD1P3ntS-Rqj-1&quot; value=&quot;Juila method&quot; style=&quot;whiteSpace=wrap;html=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+        &lt;mxCell id=&quot;3tuBuWaezD1P3ntS-Rqj-1&quot; value=&quot;Julia method&quot; style=&quot;whiteSpace=wrap;html=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
           &lt;mxGeometry x=&quot;138&quot; y=&quot;170&quot; width=&quot;100&quot; height=&quot;70&quot; as=&quot;geometry&quot; /&gt;
         &lt;/mxCell&gt;
         &lt;mxCell id=&quot;3tuBuWaezD1P3ntS-Rqj-2&quot; value=&quot;&quot; style=&quot;endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;3tuBuWaezD1P3ntS-Rqj-1&quot; target=&quot;3tuBuWaezD1P3ntS-Rqj-3&quot;&gt;
@@ -478,7 +478,7 @@ of the input type?</xhtml:div>
                style="box-sizing: border-box; font-size: 0px; text-align: center;"
                data-drawio-colors="color: rgb(0, 0, 0); ">
               <xhtml:div
-                 style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">Juila method</xhtml:div>
+                 style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">Julia method</xhtml:div>
             </xhtml:div>
           </xhtml:div>
         </foreignObject>
@@ -489,7 +489,7 @@ of the input type?</xhtml:div>
            font-family="Helvetica"
            font-size="12px"
            text-anchor="middle"
-           id="text184">Juila method</text>
+           id="text184">Julia method</text>
       </switch>
     </g>
     <path

@@ -167,7 +167,7 @@ If our predictions for type stability are to align with the Julia
 implementation, our analysis should closely model what happens at the run time,
 as described in~\chapref{chap:jules}. The type-specializing JIT-compiler
 from~\chapref{chap:jules} makes optimization decisions based on \emph{concrete
-  input types} with the help of Juila's type inference engine. Our algorithm for
+  input types} with the help of Julia's type inference engine. Our algorithm for
 approximating these decisions statically considers all (or as many as possible,
 see~\secref{sec:term}) allowed concrete input types of a method.
 \figref{fig:infer-ts} describes this algorithm at a high level.
@@ -297,11 +297,11 @@ former requires separate consideration.
 \subsection{Enumerating Concrete Subtypes}%
 \label{sec:approx:enu}
 
-\subsubsection{Nominal Hierarchy (Juila's \c{subtypes} method)}
+\subsubsection{Nominal Hierarchy (Julia's \c{subtypes} method)}
 
 In Step 3 of the algorithm (\figref{fig:infer-ts}), we need to generate a
 concrete subtype of the input type. This task does not have a direct
-implementation in Juila's standard library. The closest counterpart that Julia
+implementation in Julia's standard library. The closest counterpart that Julia
 provides is the \c{subtypes} method to query declared subtypes of a given
 nominal type. For example,
 \begin{figure}[h]
