@@ -25,7 +25,7 @@
 % - Relation to Julia subtyping.
 
 % \item
-% State space explosion
+% Search space explosion
 % due to under-constrained types, e.g.:
 % - ''fat'' (i.e. many subtypes) abstract types like Any
 % - unbounded existentials
@@ -163,20 +163,23 @@ avoid this path.
 \section{An Algorithm To Approximate Type Stability}%
 \label{sec:algo}
 
+\subsection{High-Level Description}
+\label{ssec:algo:high}
+
 If our predictions for type stability are to align with the Julia
 implementation, our analysis should closely model what happens at the run time,
 as described in~\chapref{chap:jules}. The type-specializing JIT-compiler
 from~\chapref{chap:jules} makes optimization decisions based on \emph{concrete
   input types} with the help of Julia's type inference engine. Our algorithm for
-approximating these decisions statically considers all (or as many as possible,
-see~\secref{sec:term}) allowed concrete input types of a method.
+predicting these decisions statically considers all (or as many as possible,
+see~\secref{ssec:space}) allowed concrete input types of a method.
 \figref{fig:infer-ts} describes this algorithm at a high level.
 
 \input{figs/infer-ts.tex}
 
 Let us consider every step of the algorithm described
-on~\figref{fig:infer-ts} and show its meaning using an example.
-The list below also assigns the numbers to each step in our algorithm.
+on~\figref{fig:infer-ts} and explain its meaning using an example.
+The list below also assigns the numbers to each step in the algorithm.
 \begin{enumerate}
 
   \item The input of the algorithm is a Julia method. Methods in Julia are
@@ -297,9 +300,9 @@ former requires separate consideration.
 \subsection{Enumerating Concrete Subtypes}%
 \label{sec:approx:enu}
 
-\subsubsection{Nominal Hierarchy (Julia's \c{subtypes} method)}
+\subsubsection{Julia's \c{subtypes} method}
 
-In Step 3 of the algorithm (\figref{fig:infer-ts}), we need to generate a
+On Step 3 of the algorithm (\figref{fig:infer-ts}), we need to generate a
 concrete subtype of the input type. This task does not have a direct
 implementation in Julia's standard library. The closest counterpart that Julia
 provides is the \c{subtypes} method to query declared subtypes of a given
@@ -341,24 +344,33 @@ as
 then the method can be called with an argument of type \c{Set\{Int\}}, and,
 therefore, we should be able to discover such a type following the algorithm
 on~\figref{fig:infer-ts}. It is not possible with the \c{subtype} method alone:
+from \c{subtypes}' point of view the union type above has no subtypes:
 \begin{lstlisting}[style=jterm]
   julia> subtypes(Union{AbstractSet, AbstractRange})
   Type[]
 \end{lstlisting}
-which means that from \c{subtypes}' point of view this type has no subtypes (the query
-returns an empty array of elements of the type \c{Type}). Therefore, structural
-types like unions, tuples and existential types need a special treatment.
+(the query returns an empty array of elements of the type \c{Type})
+Therefore, the structural types that has special subtyping rules, like unions,
+tuples and existential types, need a special treatment.
 
 The \c{subtypes} method does not cover the whole subtyping relation not only
 because it cannot work with structural types but also because it only knows
-about direct declared subtypes: in the subtype chain \c{Int <: Signed <:
-Integer}, \c{subtypes} only knows about \c{Int <: Signed} and \c{Signed <:
-Integer} but not about \c{Int <: Integer}. Thus, we have to build
+about direct declared subtypes: in the subtype chain
+\c{Int <: Signed <: Integer}, \c{subtypes} only knows about \c{Int <: Signed}
+and \c{Signed <: Integer} but not about \c{Int <: Integer}. Thus, we have to build
 the transitive closure manually.
 
-In the following section, I show how to generalize the \c{subtypes} method
-for all Julia types. After that I discuss how to iterate the general version to
-get to the concrete types.
+In the following subsection, I show how to generalize the \c{subtypes} method to a
+method I call \c{direct_subtypes} that produces direct subtypes for a Julia type
+of any form. Iterating applications of this new method starting from the
+signature of a method we are checking for type stability builds the transitive
+closure mentioned above.
+
+After getting all subtypes of a given type, it is possible to filter for concrete
+subtypes using the built-in Julia predicate \c{isconcretetype}. This completes
+the task of enumerating concrete subtypes and the description of the algorithm
+as presented on \figref{fig:infer-ts}.
+
 
 \subsubsection{Enumerating Direct Subtypes}
 
@@ -490,30 +502,67 @@ Tuple{C,C}
 
 \end{description}
 
-\subsection{Termination}%
-\label{sec:term}
+\subsection{Controlling Search Space of The Algorithm}%
+\label{ssec:space}
 
-It is clear that the algorithm does not terminate for some inputs. Consider the
-\c{length} example: its input type is the existential \c{Array} type, which
-means that possible concrete input types may be:
+\subsubsection{The Problem}%
+
+The algorithm as presented on \figref{fig:infer-ts} is an instance of a tree
+search algorithm: it crawls the subtype lattice starting from a given node and
+tries to find a leaf on the tree that violates a given property. The nodes of
+the tree are discovered dynamically using the \c{direct_subtypes} utility.
+%
+With the grammar of types and subtype relation as rich as Julia's, the search
+may diverge. In this section, I show how to control the search space of the
+algorithm.
+% TODO: mention that limiting the search space means we don't get an exact
+% answer anynmore -- hence, approximation.
+
+There are two potential sources of issues with the subtype tree exploration:
 \begin{itemize}
 
-  \item \c{Array\{1, Int\}}
-  \item \c{Array\{1, Array\{1, Int\}\}}
-  \item \c{Array\{1, Array\{1, Array\{1, Int\}\}\}}
-  \item etc.
+  \item the combination of existential and parametric types produces infinite
+  subtrees, which cannot be explored in finite time, however long.
+  For example, consider the
+  \c{length} method from before: its input type is an existential type on top
+  of a the parametric \c{Array} type, which,
+  among others, has the following direct concrete subtypes:
+  \begin{itemize}
+    \item \c{Array\{1, Int\}}
+    \item \c{Array\{1, Array\{1, Int\}\}}
+    \item \c{Array\{1, Array\{1, Array\{1, Int\}\}\}}
+    \item etc.
+  \end{itemize}
+
+  \item abstract types living close to the top of the subtype lattice allow too
+  many (even if finite) concrete subtypes to explore in a reasonable time. I
+  call such types \emph{underconstrained}. Two most important in practice
+  examples are the following.
+  \begin{itemize}
+    \item
+    The top type (\c{Any}),
+    which, in Julia 1.8 standard library has 567 direct subtypes.
+
+    \item
+    Existential types whose variable's upper bound is an underconstrained type.
+    Especially large search space is produced by existentials with \c{Any} as the upper
+    bound (\emph{unbounded existentials}, for short).
+
+  \end{itemize}
+  As usual with Julia, it is the combination of features that is especially
+  tricky. For instance,
+  it is not feasible to enumerate all subtypes of \c{Any} because some of its direct subtypes
+  are unbounded existentials, e.g. \c{AbstractSet}, \c{AbstractArray}, etc.
+
 \end{itemize}
 
-The issue of termination is close to another one: a search space blow up.
-In the standard library alone, there are over five hundreds immediate subtypes
-of \c{Any} and every concrete subtype of those can be used to instantiate the
-\c{Array} type when inferring type stability of \c{length}. Although finite, this
-space can be simply too large to exhaust in a reasonable time.
+% Our intention is to develop certain heuristics to perform an early termination
+% of the algorithm. The simplest heuristic of this sort is to employ a fuel
+% parameter that gives an arbitrary upper bound for the number of steps we are
+% allowed to perform before we give up.
 
-Our intention is to develop certain heuristics to perform an early termination
-of the algorithm. The simplest heuristic of this sort is to employ a fuel
-parameter that gives an arbitrary upper bound for the number of steps we are
-allowed to perform before we give up.
+% I propose two ways to avoid search space explosion at the expense of
+% completeness (hence the ``''): the search will avoid certain subtrees of the subtype lattice,
 
 \section{Evaluation}%
 \label{sec:approx:eval}
