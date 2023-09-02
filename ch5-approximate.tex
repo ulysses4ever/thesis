@@ -160,7 +160,7 @@ avoid this path.
         Julia users.
 \end{enumerate}
 
-\section{An Algorithm To Approximate Type Stability}%
+\section{An Algorithm To Check Type Stability}%
 \label{sec:algo}
 
 \subsection{High-Level Description}
@@ -172,7 +172,7 @@ as described in~\chapref{chap:jules}. The type-specializing JIT-compiler
 from~\chapref{chap:jules} makes optimization decisions based on \emph{concrete
   input types} with the help of Julia's type inference engine. Our algorithm for
 predicting these decisions statically considers all (or as many as possible,
-see~\secref{ssec:space}) allowed concrete input types of a method.
+see~\secref{sec:space}) allowed concrete input types of a method.
 \figref{fig:infer-ts} describes this algorithm at a high level.
 
 \input{figs/infer-ts.tex}
@@ -266,13 +266,13 @@ A user can always look under the abbreviation using the \c{dump} function.
   type is possible via the \c{instance} field.
 
   Running type inference for the \c{length} method and the concrete input type
-  \c{Array\{1, Float64\}} could be done as follows:
+  \c{Array\{Float64, 1\}} could be done as follows:
 
 \begin{minipage}{.92\textwidth}
 % \begin{verbatim}
 \begin{lstlisting}[style=jterm]
   julia> code_typed(m.sig.parameters[1].instance,
-                    (Array{1, Float64},),
+                    (Array{Float64, 1},),
                     optimize=false)
   1-element Vector{Any}:
    CodeInfo(
@@ -283,7 +283,7 @@ A user can always look under the abbreviation using the \c{dump} function.
 % \end{verbatim}
 \end{minipage}
 
-  \item In the running example and for the input type \c{Array\{1, Float64\}}
+  \item In the running example and for the input type \c{Array\{Float64, 1\}}
   the type inferencer is able to deduce that the return type of \c{length}
   called with the given input type is \c{Int64}, which is a concrete type
   according to the standard Julia's \c{isconcretetype} predicate.
@@ -443,6 +443,14 @@ Vector{Int8}
         \end{lstlisting}
 \end{minipage}
 
+        % TODO / Note for a curious reader: there are two ways to subtype
+        % existentials around abstract parametric types, e.g.
+        % AbstractArray{T} where T have two groups of subtypes:
+        % - AbstractArray{Int, 1}, etc.
+        % - Array, etc.
+        % so, one group is due to the structural properties of the existential,
+        % and the other one is due to nominal hierarchy.
+
   \item[Datatypes]
         In general, non-parametric nominal types defined using the \c{primitive} (e.g. \c{Int64}) or
         \c{struct} (e.g. \c{Pair}) qualifiers,  can be processed
@@ -502,13 +510,13 @@ Tuple{C,C}
 
 \end{description}
 
-\subsection{Controlling Search Space of The Algorithm}%
-\label{ssec:space}
+\section{Search Space and Approximation}%
+\label{sec:space}
 
-\subsubsection{The Problem}%
+\subsection{The Problem}%
 
 The algorithm as presented on \figref{fig:infer-ts} is an instance of a tree
-search algorithm: it crawls the subtype lattice starting from a given node and
+search algorithm: it crawls the subtype tree starting from a given node and
 tries to find a leaf on the tree that violates a given property. The nodes of
 the tree are discovered dynamically using the \c{direct_subtypes} utility.
 %
@@ -519,22 +527,9 @@ algorithm.
 % answer anynmore -- hence, approximation.
 
 There are two potential sources of issues with the subtype tree exploration:
-\begin{itemize}
+\begin{enumerate}
 
-  \item the combination of existential and parametric types produces infinite
-  subtrees, which cannot be explored in finite time, however long.
-  For example, consider the
-  \c{length} method from before: its input type is an existential type on top
-  of a the parametric \c{Array} type, which,
-  among others, has the following direct concrete subtypes:
-  \begin{itemize}
-    \item \c{Array\{1, Int\}}
-    \item \c{Array\{1, Array\{1, Int\}\}}
-    \item \c{Array\{1, Array\{1, Array\{1, Int\}\}\}}
-    \item etc.
-  \end{itemize}
-
-  \item abstract types living close to the top of the subtype lattice allow too
+  \item Abstract types living close to the top of the subtype lattice allow too
   many (even if finite) concrete subtypes to explore in a reasonable time. I
   call such types \emph{underconstrained}. Two most important in practice
   examples are the following.
@@ -551,10 +546,37 @@ There are two potential sources of issues with the subtype tree exploration:
   \end{itemize}
   As usual with Julia, it is the combination of features that is especially
   tricky. For instance,
-  it is not feasible to enumerate all subtypes of \c{Any} because some of its direct subtypes
+  it is not feasible to enumerate all subtypes of \c{Any} because a handful of those
+  567 direct subtypes
   are unbounded existentials, e.g. \c{AbstractSet}, \c{AbstractArray}, etc.
 
-\end{itemize}
+  \item The combination of underconstrained existential types and parametric types produces infinite
+  subtrees because any \emph{recursive instantiation} of a parametric type under an
+  underconstrained existential will still be a subtype of the existential.
+  These cannot be explored in finite time, however long.
+  For example, consider the
+  \c{length} method from before: its input type is an existential type on top
+  of a the parametric \c{Array} type, which,
+  among others, has the following direct concrete subtypes:
+  \begin{itemize}
+    \item \c{Array\{Int, 1\}}
+    \item \c{Array\{Array\{Int, 1\}, 1\}}
+    \item \c{Array\{Array\{Array\{Int, 1\}, 1\}, 1\}}
+    \item etc.
+  \end{itemize}
+
+\end{enumerate}
+
+Too large (sometimes infinite) search space is the reason why, in general,
+the algorithm builds only an approximation of the answer to a type stability query.
+In the rest of the section I describe two concrete ways to control the search
+space
+to avoid looping or excessive
+
+% In practice, it can work well if provided with a robust way to avoid
+% pathologically large subtrees.
+
+%run-time decision about
 
 % Our intention is to develop certain heuristics to perform an early termination
 % of the algorithm. The simplest heuristic of this sort is to employ a fuel
