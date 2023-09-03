@@ -513,8 +513,6 @@ Tuple{C,C}
 \section{Search Space and Approximation}%
 \label{sec:space}
 
-\subsection{The Problem}%
-
 The algorithm as presented on \figref{fig:infer-ts} is an instance of a tree
 search algorithm: it crawls the subtype tree starting from a given node and
 tries to find a leaf on the tree that violates a given property. The nodes of
@@ -526,65 +524,62 @@ algorithm.
 % TODO: mention that limiting the search space means we don't get an exact
 % answer anynmore -- hence, approximation.
 
-There are two potential sources of issues with the subtype tree exploration:
+\subsection{The Problem: Underconstrained Types}%
+
+There are several groups of abstract types that have ``too many'' subtypes to explore
+and, therefore, leading to issues with the subtype tree exploration; I call such
+types \emph{underconstrained}. Most common groups of underconstrained types are
+as follows.
 \begin{enumerate}
 
-  \item Abstract types living close to the top of the subtype lattice allow too
-  many (even if finite) concrete subtypes to explore in a reasonable time. I
-  call such types \emph{underconstrained}. Two most important in practice
-  examples are the following.
-  \begin{itemize}
-    \item
-    The top type (\c{Any}),
-    which, in Julia 1.8 standard library has 567 direct subtypes.
+  \item Nominal abstract types living close to the top of the subtype lattice
+    have too many (even if finite) concrete subtypes to explore in a reasonable time.
+    The most prominent example is the top type (\c{Any}) itself.
+    The top type in Julia 1.8 standard library has 567 direct subtypes, most of
+    which are abstract and, therefore, have a number of direct subtypes of
+    their own
 
-    \item
-    Existential types whose variable's upper bound is an underconstrained type.
-    Especially large search space is produced by existentials with \c{Any} as the upper
-    bound (\emph{unbounded existentials}, for short).
+  \item Existential types whose variable's upper bound is an underconstrained
+    type. Especially large search space is produced by existentials with \c{Any}
+    as the upper bound (\emph{unbounded existentials}, for short).
 
-  \end{itemize}
-  As usual with Julia, it is the combination of features that is especially
-  tricky. For instance,
-  it is not feasible to enumerate all subtypes of \c{Any} because a handful of those
-  567 direct subtypes
-  are unbounded existentials, e.g. \c{AbstractSet}, \c{AbstractArray}, etc.
+    The combination of the features is especially tricky, for instance, it is
+    not feasible to enumerate all subtypes of \c{Any} because a handful of those
+    567 direct subtypes are unbounded existentials, e.g. \c{AbstractSet},
+    \c{AbstractArray}, etc.
 
-  \item The combination of underconstrained existential types and parametric types produces infinite
-  subtrees because any \emph{recursive instantiation} of a parametric type under an
-  underconstrained existential will still be a subtype of the existential.
-  These cannot be explored in finite time, however long.
-  For example, consider the
-  \c{length} method from before: its input type is an existential type on top
-  of a the parametric \c{Array} type, which,
-  among others, has the following direct concrete subtypes:
-  \begin{itemize}
-    \item \c{Array\{Int, 1\}}
-    \item \c{Array\{Array\{Int, 1\}, 1\}}
-    \item \c{Array\{Array\{Array\{Int, 1\}, 1\}, 1\}}
-    \item etc.
-  \end{itemize}
+  \item The combination of underconstrained existential types and parametric
+    types produces infinite subtrees because any \emph{recursive instantiation}
+    of the parametric type under an underconstrained existential will still be a
+    subtype of the existential. These cannot be explored in finite time, however
+    long. For example, consider the \c{length} method from before: its input
+    type is an existential type on top of a the parametric \c{Array} type,
+    which, among others, has the following direct concrete subtypes:
+    \begin{itemize}
+      \item \c{Array\{Int, 1\}}
+      \item \c{Array\{Array\{Int, 1\}, 1\}}
+      \item \c{Array\{Array\{Array\{Int, 1\}, 1\}, 1\}}
+      \item etc.
+    \end{itemize}
 
 \end{enumerate}
 
 Too large (sometimes infinite) search space is the reason why, in general,
 the algorithm builds only an approximation of the answer to a type stability query.
-In the rest of the section I describe two concrete ways to control the search
-space
-to avoid looping or excessive
+In the rest of the section, I describe three concrete ways to control the search
+space to avoid looping and excessive search time.
 
-% In practice, it can work well if provided with a robust way to avoid
-% pathologically large subtrees.
-
-%run-time decision about
+\subsection{Fuel}
 
 % Our intention is to develop certain heuristics to perform an early termination
 % of the algorithm. The simplest heuristic of this sort is to employ a fuel
 % parameter that gives an arbitrary upper bound for the number of steps we are
 % allowed to perform before we give up.
 
-% I propose two ways to avoid search space explosion at the expense of
-% completeness (hence the ``''): the search will avoid certain subtrees of the subtype lattice,
+\subsection{Sampling}
+
+\subsection{Type Inference With Abstract Types}
+
 
 \section{Evaluation}%
 \label{sec:approx:eval}
