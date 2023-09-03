@@ -525,6 +525,7 @@ algorithm.
 % answer anynmore -- hence, approximation.
 
 \subsection{The Problem: Underconstrained Types}%
+\label{ssect:uconstr-types}
 
 There are several groups of abstract types that have ``too many'' subtypes to explore
 and, therefore, leading to issues with the subtype tree exploration; I call such
@@ -571,10 +572,9 @@ space to avoid looping and excessive search time.
 
 \subsection{Fuel}
 
-% Our intention is to develop certain heuristics to perform an early termination
-% of the algorithm. The simplest heuristic of this sort is to employ a fuel
-% parameter that gives an arbitrary upper bound for the number of steps we are
-% allowed to perform before we give up.
+The simplest heuristic to limit the number nodes to explore on the subtype tree
+is to put an arbitrary upper bound on that number~--- the idea commonly referred
+to as \emph{fuel}.
 
 \subsection{Sampling}
 
