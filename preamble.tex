@@ -91,21 +91,32 @@
 %        Bibliography
 %
 % ********************************************************************
-\usepackage[
-  backend=biber,bibencoding=utf8, %instead of bibtex
-  %backend=bibtex8,bibencoding=ascii,%
-  language=auto,%
-  style=numeric-comp,%
-  %style=authoryear-comp, % Author 1999, 2010
-  %bibstyle=authoryear,dashed=false, % dashed: substitute rep. author with ---
-  sorting=nyt, % name, year, title
-  maxbibnames=10, % default: 3, et al.
-  %backref=true,%
-  natbib=true % natbib compatibility mode (\citep and \citet still work)
-]{biblatex}
-\addbibresource{bib/jv.bib}
-\addbibresource{bib/all.bib}
-\addbibresource{bib/lj.bib}
+\usepackage{natbib}
+%% Settings copied from the ACM style
+\bibliographystyle{style/ACM-Reference-Format}{}
+\setcitestyle{%
+    authoryear,%
+    open={[},close={]},citesep={;},%
+    aysep={},yysep={,},%
+    notesep={, },%
+}
+\let\citeN\cite
+\let\cite\citep
+
+%% removing extra fields for clarity
+
+%% back references in bibliography with a custom format
+%% (modified from https://tex.stackexchange.com/a/226415/54443)
+\usepackage[hyperpageref]{backref}
+\renewcommand*{\backrefalt}[4]{%
+\ifcase #1 %
+(No citations)%
+\or
+(cited on p.~#2)%
+\else
+(cited on pp.~#2)
+\fi
+}
 
 
 % ********************************************************************
