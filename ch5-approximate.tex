@@ -572,9 +572,30 @@ space to avoid looping and excessive search time.
 
 \subsection{Fuel}
 
-The simplest heuristic to limit the number nodes to explore on the subtype tree
+The simplest heuristic to limit the number of nodes to explore on the subtype tree
 is to put an arbitrary upper bound on that number~--- the idea commonly referred
-to as \emph{fuel}.
+to as \emph{fuel}. The amount of fuel may be determined empirically, for
+example, taking the maximum over numbers of types explored during successful type
+stability checks in a corpus of code.
+
+The idea implemented straightforwardly may not be very helpful in a tree search
+algorithm where we are interested in leaves (concrete types) only: in general,
+the algorithm may run out of fuel before exploring any concrete types and,
+therefore, before performing any checks. Example of this may be any on the
+corner cases listed in \ssecref{ssect:uconstr-types}, but especially easy to see
+with the corner case 3~--- an infinite chain of recursive applications of
+a parametric type.
+
+The idea can be applied in more clever ways, e.g.: limit the number of concrete
+types we explore, or limit the number of applications of parametric types during
+one search. This can be explored further.
+
+In practice, the plain number of types discovered parameter is most useful if we employ it
+only to catch cases where the search goes awry. Effectively, this allows for a
+constructive definition for underconstrained types described informally in
+\ssecref{ssect:uconstr-types}. Once the fuel runs out, the algorithm decides
+that an underconstrained type is hit and can apply other techniques, including
+ones described below but also any others.
 
 \subsection{Sampling}
 
