@@ -41,14 +41,26 @@ the assumptions about type stability directly in the code.
 \pdfbookmark[1]{\contentsname}{tableofcontents}
 \setcounter{tocdepth}{2} % <-- 2 includes up to subsections in the ToC
 \setcounter{secnumdepth}{3} % <-- 3 numbers up to subsubsections
+\cleardoublepage%
+\phantomsection%
+\addcontentsline{toc}{chapter}{Contents}
 \tableofcontents
+
+\cleardoublepage%
+\phantomsection%
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures
+
+\cleardoublepage%
+\phantomsection%
+\addcontentsline{toc}{chapter}{\listtablename}
+\listoftables
 
 %********************************************************************
 % Mainmatter
 %*******************************************************
-\cleardoublepage
+\cleardoublepage%
 \pagestyle{scrheadings}
 \pagenumbering{arabic}
 %\setcounter{page}{90}
 % use \cleardoublepage here to avoid problems with pdfbookmark
-\cleardoublepage
