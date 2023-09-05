@@ -17,7 +17,6 @@
 
 % \item
 % Enumerating concrete subtypes
-% -
 
 % Meta: features of the algorithm I'd like to discuss at some point.
 % - Corner cases, termination, fuel.
@@ -30,17 +29,18 @@
 % - ''fat'' (i.e. many subtypes) abstract types like Any
 % - unbounded existentials
 %
-% We propose two approaches to fight this problem:
+% We propose three approaches to fight this problem:
+% - fuel
 % - run type inference with Any: concrete result means it's stable
 % - the types DB idea
 
 % \item 
 % Implementation
 % - User's API (macro and otherwise)?
+% - Processing Julia modules: pitfalls and workarounds.
 
 % \item
 % Evaluation
-% - Processing Julia modules: pitfalls and workarounds.
 % - Results on 10 popular Julia packages.
 
 
@@ -145,8 +145,8 @@ stability and type inference can be formulated as the following conjecture.
 \end{conjecture}
 
 A full type inference algorithm would be enough for checking type stability of
-Julia code. Should we build one from scratch? There are two reasons to not
-avoid this path.
+Julia code. Should we build one from scratch? There are two reasons to
+not go this way.
 \begin{enumerate}
 
   \item It is not clear that typing Julia without changing anything in the
@@ -160,7 +160,7 @@ avoid this path.
         Julia users.
 \end{enumerate}
 
-\section{An Algorithm To Check Type Stability}%
+\section{An Algorithm To Infer Type Stability}%
 \label{sec:algo}
 
 \subsection{High-Level Description}
@@ -256,7 +256,7 @@ A user can always look under the abbreviation using the \c{dump} function.
   In the case of the \c{length} method, the input type, \c{Array}, is abstract
   because it is an existential type.
 
-  \item Running type inference for a given method and a given concrete input
+  \item Running Julia's type inference for a given method and a given concrete input
   type is done through calling the Julia's standard \c{code\_typed} function.
   The only issue with the function is that it expects a function object as the
   part of the input, not a method object. But getting from a method to the
@@ -266,9 +266,18 @@ A user can always look under the abbreviation using the \c{dump} function.
   type is possible via the \c{instance} field.
 
   Running type inference for the \c{length} method and the concrete input type
-  \c{Array\{Float64, 1\}} could be done as follows:
+  \c{Array\{Float64, 1\}} could be done as shown on \figref{fig:julia-type-infer}.
+  The return value is an array of \c{CodeInfo} objects, representing
+  the type-annotated method bodies of all methods that the given input type
+  could dispatch to (with a concrete input type and no ambiguities in method
+  definitions we always get one element in the array); also, the method body is
+  interpreted with a lower-level intermediate representation along the lines
+  discussed in \ssecref{ssec:perf} and \chapref{chap:jules}. In this case, the
+  method body contains a single call to an intrinsic Julia function that is
+  known to return a value of type \c{Int}.
 
-\begin{minipage}{.92\textwidth}
+  \begin{figure}[hbt]
+% \begin{minipage}{.92\textwidth}
 % \begin{verbatim}
 \begin{lstlisting}[style=jterm]
   julia> code_typed(m.sig.parameters[1].instance,
@@ -280,10 +289,13 @@ A user can always look under the abbreviation using the \c{dump} function.
   +--      return %1
   ) => Int64
 \end{lstlisting}
+    \caption{Running Julia's built-in type inferencer}%
+    \label{fig:julia-type-infer}
+  \end{figure}
 % \end{verbatim}
-\end{minipage}
+% \end{minipage}
 
-  \item In the running example and for the input type \c{Array\{Float64, 1\}}
+  \item In the running example and for the concrete input type \c{Array\{Float64, 1\}}
   the type inferencer is able to deduce that the return type of \c{length}
   called with the given input type is \c{Int64}, which is a concrete type
   according to the standard Julia's \c{isconcretetype} predicate.
@@ -360,11 +372,11 @@ about direct declared subtypes: in the subtype chain
 and \c{Signed <: Integer} but not about \c{Int <: Integer}. Thus, we have to build
 the transitive closure manually.
 
-In the following subsection, I show how to generalize the \c{subtypes} method to a
-method I call \c{direct_subtypes} that produces direct subtypes for a Julia type
-of any form. Iterating applications of this new method starting from the
-signature of a method we are checking for type stability builds the transitive
-closure mentioned above.
+In the following subsection, I show how to generalize the \c{subtypes} method to
+a method I call \c{direct_subtypes} that produces direct subtypes for a Julia
+type of any form. Starting from the signature of a method we are checking for
+type stability and iterating applications of the \c{direct_subtypes} method
+builds the transitive closure mentioned above.
 
 After getting all subtypes of a given type, it is possible to filter for concrete
 subtypes using the built-in Julia predicate \c{isconcretetype}. This completes
@@ -420,7 +432,7 @@ both \c{Integer} and \c{Tuple\{Integer, Integer\}} are datatypes, but
 
   \item[Existential Types]
         Existential types in Julia has the kind \c{UnionAll} and a form of
-        \c{Vector{T} where T} commonly abbreviated as \c{Vector}. Every
+        \lstinline|Vector{T}| \c{where T} commonly abbreviated as \c{Vector}. Every
         \c{where}-bound type variable has associated upper and lower bounds with
         default values \c{Any} and \c{Union\{\}} (the top and bottom types),
         respectively. Direct subtypes of an existential type is all
@@ -429,8 +441,10 @@ both \c{Integer} and \c{Tuple\{Integer, Integer\}} are datatypes, but
         satisfying the lower bound, and use the resulting set of types to
         instatiate the variable with.
 
-        For example, consider the \c{Vector\{T\} where T<:Signed} type.
-        All subtypes (not only direct or concrete) of \c{Signed} are: \c{BigInt, Int128, Int16, Int32, Int64, Int8}. Therefore, all direct subtypes of the vector type in question are:
+        For example, consider the \c{Vector\{T\}} \c{where T<:Signed} type.
+        All subtypes (not only direct or concrete) of \c{Signed} are:
+        \c{BigInt, Int128, Int16, Int32, Int64, Int8}. Therefore, all direct
+        subtypes of the vector type in question are:
 
 \begin{minipage}{.92\textwidth}
         \begin{lstlisting}
@@ -533,12 +547,12 @@ types \emph{underconstrained}. Most common groups of underconstrained types are
 as follows.
 \begin{enumerate}
 
-  \item Nominal abstract types living close to the top of the subtype lattice
+  \item Nominal types declared close to the top of the subtype lattice
     have too many (even if finite) concrete subtypes to explore in a reasonable time.
     The most prominent example is the top type (\c{Any}) itself.
     The top type in Julia 1.8 standard library has 567 direct subtypes, most of
     which are abstract and, therefore, have a number of direct subtypes of
-    their own
+    their own, etc., so it is not feasible to track the whole tree during the search.
 
   \item Existential types whose variable's upper bound is an underconstrained
     type. Especially large search space is produced by existentials with \c{Any}
@@ -565,10 +579,10 @@ as follows.
 
 \end{enumerate}
 
-Too large (sometimes infinite) search space is the reason why, in general,
-the algorithm builds only an approximation of the answer to a type stability query.
-In the rest of the section, I describe three concrete ways to control the search
-space to avoid looping and excessive search time.
+Too large (sometimes infinite) search space is the reason why, in general, the
+algorithm builds only an approximation of the answer to a type stability
+inference query. In the rest of the section, I describe three concrete ways to
+control the search space to avoid looping and excessive search time.
 
 \subsection{Fuel}
 
@@ -604,13 +618,13 @@ point on the subtype lattice. A natural idea to solve the issue is to start from
 low points in the lattice instead, and in particular~--- from concrete types.
 In order to realize the idea, one needs to collect a sample of concrete types
 and store them as a \emph{database}, which should be available at the
-type-stability checking time.
+type-stability inference time.
 
 The challenge becomes: which concrete types should be put in the database. In
 principle, we can use some fixed universe of Julia types, e.g. all types defined
 in Julia packages. As a necessary condition, the concrete types to check should
 be in the subtype relation with the underconstrained type in the method
-signature in question, which is easy to check for using Julia's built-in \c{<:}
+signature in question, which can be tested for using Julia's built-in \c{<:}
 predicate. Other than that, there are no restrictions.
 
 For the sample set of concrete Julia types, I propose a tactic based on the type
@@ -623,7 +637,7 @@ because some of the declared types are parametric, and we are back to the
 question of how to instantiate the parameters.
 
 There is one technical obstacle to using concrete types seen elsewhere for the purpose
-of type stability checking in the current Julia session. Recovering types from
+of type stability inference in the current Julia session. Recovering types from
 other sessions requires an environment where the name of the type can be
 successfully resolved. Concretely, to recreate a necessary environment means
 installing some Julia packages.
@@ -666,12 +680,72 @@ loaded by the tool.
 
 \subsection{Type Inference With Abstract Types}
 
+So far, we assumed that to determine type stability of a method, it is necessary
+to run Julia's type inferencer on that method with all possible \emph{concrete} input
+types. Indeed, this naturally follows from our understanding of Julia's inner
+workings and modeled formally in~\chapref{chap:jules}. Let us now revise this
+assumption in trying to solve the search state growth problem.
+
+A usual definition of type stability (e.g. the formal one I give in
+\defref{def:ground}) has the form of an implication: if a condition (a type
+being concrete) applies to the input type, then the same condition applies to
+the type of the output. Clearly, relaxing the premise of the implication, i.e.
+the part where we ought to provide a concrete input type, and making no
+assumption about the input type instead, leads to a stricter statement or, in
+other words, a subset of the Julia methods that would normally be considered
+type stable.
+
+Relaxing the definition of type stability as described makes for an easier task
+and identifies a special group of methods I call \emph{type-constant methods}.
+Those methods hold two independent properties:
+\begin{itemize}
+  \item the type of the input do not allow influence the type of the output,
+  \item the output type can be inferred as concrete.
+\end{itemize}
+Type-constant methods are a proper subset of all type-stable methods.
+
+The idea of type-constant methods allows another solution for the search state
+problem. In particular, before trying to solve the potentially hard problem of
+inferring type stability the algorithm checks whether the given method is
+type-constant with a single call to the type inferencer.
+
+% TODO: add discussion of how likely it is that a type-stable method is also type-constant
+% and some possibly important classes of type-constant methods like''
+% 'interestingly polymorphic' ones from \ssecref{ssec:empirical:manual}
+
+In order to decide the easier task, the algorithm still needs to run Julia's
+type inferencer, and for that some input type should be provided. The obvious
+candidate for such a type is the one taken directly from the method signature.
+Such input type, even if abstract, also makes sure that Julia will dispatch the
+same method that is currently analyzed, and it is the most general (w.r.t.
+subtype lattice) such type.
+
+Getting back to the running example in \ssecref{ssec:algo:high} with the
+\c{length} method, let us call Julia's type inferencer, as
+shown on Step 4 of the algorithm (\figref{fig:julia-type-infer}). But
+instead of the concrete type used in the example, we supply the most general type
+for that method (i.e. the type provided in the method signature)~--- the
+existential \c{Array} type:
+\begin{lstlisting}[style=jterm]
+  julia> code_typed(m.sig.parameters[1].instance,
+                    (Array,),
+                    optimize=false)
+  1-element Vector{Any}:
+   CodeInfo(
+  1 - %1 = Base.arraylen(a)::Int64
+  +--      return %1
+  ) => Int64
+\end{lstlisting}
+Hence, the type inferencer is able to infer the concrete \c{Int64} type, which
+is what we expect for the output type of a \c{length} method.
+
+% \section{Updated Algorithm} %?
 
 \section{Evaluation}%
 \label{sec:approx:eval}
 
-In \chapref{chap:empirical} I analyzed type stability of a corpus of open-source
-Julia packages dynamically via executing test suites of the packages and
+In \chapref{chap:empirical} I describe dynamic type stability analysis of a
+corpus of open-source Julia packages via executing test suites of the packages and
 inspecting the resulting method instances collected from the internal state of
 the virtual machine. Here, I run the algorithm from \secref{sec:algo} to
 statically infer type stability of the same packages and match the
