@@ -597,7 +597,72 @@ constructive definition for underconstrained types described informally in
 that an underconstrained type is hit and can apply other techniques, including
 ones described below but also any others.
 
-\subsection{Sampling}
+\subsection{Sampling Concrete Types}
+
+The essence of the issue with diverging search is that we start at a too high
+point on the subtype lattice. A natural idea to solve the issue is to start from
+low points in the lattice instead, and in particular~--- from concrete types.
+In order to realize the idea, one needs to collect a sample of concrete types
+and store them as a \emph{database}, which should be available at the
+type-stability checking time.
+
+The challenge becomes: which concrete types should be put in the database. In
+principle, we can use some fixed universe of Julia types, e.g. all types defined
+in Julia packages. As a necessary condition, the concrete types to check should
+be in the subtype relation with the underconstrained type in the method
+signature in question, which is easy to check for using Julia's built-in \c{<:}
+predicate. Other than that, there are no restrictions.
+
+For the sample set of concrete Julia types, I propose a tactic based on the type
+stability tracing framework discussed in~\chapref{chap:empirical}. In
+particular, I run test suites of popular Julia packages and record which
+concrete types are used to instantiate methods.
+This avoids an issue with the simplest approach mentioned above, namely trying
+all declared concrete Julia types: that tactic is not specific enough,
+because some of the declared types are parametric, and we are back to the
+question of how to instantiate the parameters.
+
+There is one technical obstacle to using concrete types seen elsewhere for the purpose
+of type stability checking in the current Julia session. Recovering types from
+other sessions requires an environment where the name of the type can be
+successfully resolved. Concretely, to recreate a necessary environment means
+installing some Julia packages.
+Note, that the obstacle of recreating environments for types does not come up
+with the top-down search described earlier, because the \c{subtypes} method
+applied iteratively, as discussed in \ssecref{sec:approx:enu}, will always only
+discover the types visible in the current session.
+
+The obstacle can be solved if the database bears enough
+of the provenance information for every type. Such information makes using the
+type possible, but whether it is a good idea to try to recreate a necessary
+environment is another question: downloading and
+installing some extra Julia packages may be undesirable for some reason (e.g.
+network may not available, etc.). In cases when installing more packages is not
+an option, the algorithm can filter and
+employ only the types defined in the standard library, which is always available
+in Julia, and the currently loaded packages.
+
+As an example of the sampling approach, I publish a database
+\footnote{%
+  \url{https://github.com/prl-julia/julia-type-stability-checker-data/blob/0ef57a6/types-database/types.csv}}.
+with concrete Julia types used to instantiate methods during test suite runs in
+the 10 popular packages listed in Table \ref{empirical:fig:top}. The database
+contains the necessary type provenance information and can be successfully
+loaded by the tool.
+% TODO: maybe 'and also number of times methods it was' ? We can use this data
+% to limit the number of types we try. But also, this can be put in the future
+% work along with the next
+% TODO: future work: using ML to figure which types a method will likely be
+% instantiated with: e.g. a new length method being tested for TS could be
+% first tried with types that existing ''length`` methods are usually called with.
+
+% TODO: 'The database consists of N types...' -- add when sort out the issue with
+% duplicated types because of the package/module mess. It should be
+% straightforward to figure because a top-level module (i.e. one without dots in
+% the name) either comes from a same-named package or from the stdlib. For the
+% latter, there seems to be 44 stdlib modules. We'll have to hard-code them or
+% use 'Base.loaded_modules_array()'.
+
 
 \subsection{Type Inference With Abstract Types}
 
