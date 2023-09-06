@@ -161,7 +161,7 @@ not go this way.
 \end{enumerate}
 
 \section{An Algorithm To Infer Type Stability}%
-\label{sec:algo}
+\label{sec:approx:algo}
 
 \subsection{High-Level Description}
 \label{ssec:algo:high}
@@ -172,7 +172,7 @@ as described in~\chapref{chap:jules}. The type-specializing JIT-compiler
 from~\chapref{chap:jules} makes optimization decisions based on \emph{concrete
   input types} with the help of Julia's type inference engine. Our algorithm for
 predicting these decisions statically considers all (or as many as possible,
-see~\secref{sec:space}) allowed concrete input types of a method.
+see~\secref{sec:approx:space}) allowed concrete input types of a method.
 \figref{fig:infer-ts} describes this algorithm at a high level.
 
 \input{figs/infer-ts.tex}
@@ -180,9 +180,9 @@ see~\secref{sec:space}) allowed concrete input types of a method.
 Let us consider every step of the algorithm described
 on~\figref{fig:infer-ts} and explain its meaning using an example.
 The list below also assigns the numbers to each step in the algorithm.
-\begin{enumerate}
+\begin{description}
 
-  \item The input of the algorithm is a Julia method. Methods in Julia are
+  \item[Step 1] The input of the algorithm is a Julia method. Methods in Julia are
   represented by runtime objects of type \c{Method} and can be manipulated as
   all other objects (e.g. stored in collections, responding to field accesses, etc.).
 
@@ -205,7 +205,7 @@ The list below also assigns the numbers to each step in the algorithm.
   method. In fact, what we see here is a pretty-printed representation of
   the \c{Method} object representing a particular Julia method.
 
-  \item The first task of the algorithm is to get the input type of the given
+  \item[Step 2] The first task of the algorithm is to get the input type of the given
   method. This is possible through querying the \c{sig} field of the method object.
 
   Building on the example above, we can get the signature of the \c{length}
@@ -243,20 +243,23 @@ A user can always look under the abbreviation using the \c{dump} function.
 % \end{lstlisting}
 }.
 
-  \item The input type can be either concrete, which, in Julia, means there may
+  \item[Step 3] The input type can be either concrete, which, in Julia, means there may
   be no proper subtypes of that type, or abstract. Still, the choice on the
-  step 3 will enter the loop at least once, because if the input type is
+  current step will enter the loop at least once, because if the input type is
   concrete, the check holds once trivially (e.g.\ there is exactly one concrete
   subtype of the concrete type \c{Int} --- it is \c{Int} itself).
 
-  If the input type is abstract, we need a subprocess enumerating all concrete
-  subtypes of it. We discuss an implementation for this below but it suffices to
-  treat is as a black box for now. % TODO: ref to subtyping section?
+  If the input type is abstract, we need a procedure enumerating all concrete
+  subtypes of it. An implementation for this procedure is discussed below
+  (\ssecref{sec:approx:enu}), but it suffices to
+  treat is as a black box for now.
 
-  In the case of the \c{length} method, the input type, \c{Array}, is abstract
-  because it is an existential type.
+  In the case of the \c{length} method, the input type, \c{Array}, is
+  an existential type and hence abstract. Therefore, the enumeration procedure
+  should have yielded a concrete subtype of \c{Array}. Assume that
+  the concrete type is \c{Array\{Float64, 1\}}.
 
-  \item Running Julia's type inference for a given method and a given concrete input
+  \item[Step 4] Running Julia's type inference for a given method and a given concrete input
   type is done through calling the Julia's standard \c{code\_typed} function.
   The only issue with the function is that it expects a function object as the
   part of the input, not a method object. But getting from a method to the
@@ -295,14 +298,14 @@ A user can always look under the abbreviation using the \c{dump} function.
 % \end{verbatim}
 % \end{minipage}
 
-  \item In the running example and for the concrete input type \c{Array\{Float64, 1\}}
+  \item[Step 5] In the running example and for the concrete input type \c{Array\{Float64, 1\}}
   the type inferencer is able to deduce that the return type of \c{length}
   called with the given input type is \c{Int64}, which is a concrete type
   according to the standard Julia's \c{isconcretetype} predicate.
   Following the second decision element on \figref{fig:infer-ts}, we get back to
   the start of the loop and try another concrete subtype of the input type,
   if there is any.
-\end{enumerate}
+\end{description}
 
 There are two main auxiliary procedures that the algorithm relies on: enumeration of
 concrete subtypes of a given input type and type inference over a method with the
@@ -314,7 +317,7 @@ former requires separate consideration.
 
 \subsubsection{Julia's \c{subtypes} method}
 
-On Step 3 of the algorithm (\figref{fig:infer-ts}), we need to generate a
+On \astep 3 of the algorithm (\ssecref{ssec:algo:high}), we need to generate a
 concrete subtype of the input type. This task does not have a direct
 implementation in Julia's standard library. The closest counterpart that Julia
 provides is the \c{subtypes} method to query declared subtypes of a given
@@ -525,7 +528,7 @@ Tuple{C,C}
 \end{description}
 
 \section{Search Space and Approximation}%
-\label{sec:space}
+\label{sec:approx:space}
 
 The algorithm as presented on \figref{fig:infer-ts} is an instance of a tree
 search algorithm: it crawls the subtype tree starting from a given node and
@@ -678,7 +681,8 @@ loaded by the tool.
 % use 'Base.loaded_modules_array()'.
 
 
-\subsection{Type Inference With Abstract Types}
+\subsection{Type Inference With Abstract Types}%
+\label{ssec:approx:space:abstract}
 
 So far, we assumed that to determine type stability of a method, it is necessary
 to run Julia's type inferencer on that method with all possible \emph{concrete} input
@@ -722,7 +726,7 @@ subtype lattice) such type.
 
 Getting back to the running example in \ssecref{ssec:algo:high} with the
 \c{length} method, let us call Julia's type inferencer, as
-shown on Step 4 of the algorithm (\figref{fig:julia-type-infer}). But
+shown on \astep 4 of the algorithm (\figref{fig:julia-type-infer}). But
 instead of the concrete type used in the example, we supply the most general type
 for that method (i.e. the type provided in the method signature)~--- the
 existential \c{Array} type:
@@ -739,7 +743,96 @@ existential \c{Array} type:
 Hence, the type inferencer is able to infer the concrete \c{Int64} type, which
 is what we expect for the output type of a \c{length} method.
 
-% \section{Updated Algorithm} %?
+\section{Updated Algorithm} %?
+\label{sec:approx:algo-final}
+
+This section describes an updated version of the algorithm to infer type
+stability (\secref{sec:approx:algo}) enhanced with the approximation ideas
+presented in \secref{sec:approx:space}.
+
+The parameters of the updated algorithm is the amount of fuel we use to discover
+concrete types and whether to use a type database for sampling (and the database
+itself if we do want to use one).
+Every step of the updated algorithm below is marked as either changed or not
+changed or new with respect to the step with the same number (if not new) in the
+original version of the algorithm (\secref{sec:approx:algo}).
+If a step is new, then a reference to the subsection with the corresponding idea is provided.
+The steps of the updated algorithm are as follows.
+\begin{description}
+  \item[Step 1 (not changed)] Input of the algorithm is a Julia method \c{m}.
+  \item[Step 2 (not changed)] Extract the input type \c{t} of the method.
+  \item[Step 2a (new step, \ssecref{ssec:approx:space:abstract})]
+    Run Julia's type inference with \c m and \c t as the
+    inputs. If the result is concrete, \textastep{exit} with the result: the given
+    method is type stable.
+  \item[Step 3 (changed)] Try to get a fresh concrete subtype of the input type
+    from the enumeration procedure as described in \ssecref{sec:approx:enu}
+    but ran with the fuel. Possible outcomes:
+    \begin{itemize}
+      \item If the procedure runs out of fuel, go to
+        \astep{6}.
+      \item If the procedure finds no new concrete types, \textastep{exit} with the
+      result: the given method is type stable.
+      \item If the procedure returns a concrete type \c c, proceed to the next step.
+    \end{itemize}
+  \item[Step 4 (not changed)] Run Julia’s type inference with \c m and \c c as
+    inputs to get the inferred type of the result \c r.
+  \item[Step 5 (not changed)]
+    If \c r  is concrete, go to \astep 3. Otherwise, \textastep{exit}
+    with the result: the given method is not type stable and the possible type
+    of input \c c is a counterexample.
+  \item[Step 6 (new)]
+    If sampling from a types database is not requested, \textastep{EXIT} with
+    the result: underconstrained input type.
+    Otherwise,
+    a loop similar to
+    \textastep{steps 3--5} is entered in the next step.
+  \item[Step 7 (new)]
+    Try to get the next concrete type from the type database.
+    If no fresh concrete type is found in the database, \textastep{EXIT} with
+    the result: underconstrained input type.
+    Otherwise, proceed to the next step with a concrete type \c c.
+  \item[Step 8 (new)]
+    Run Julia’s type inference with \c m and \c c as
+    inputs to get the inferred type of the result \c r.
+  \item[Step 9 (new)]
+    If \c r  is concrete, go to \astep 7. Otherwise, \textastep{exit}
+    with the result: the given method is not type stable and the possible type
+    of input \c c is a counterexample.
+\end{description}
+
+
+The possible outcomes of the updated algorithm are as follows.
+\begin{enumerate}
+
+  \item The method is definitely type stable. This can be concluded either after
+  running type inference with abstract types
+  (\ssecref{ssec:approx:space:abstract}) or after exhaustively enumerating all
+  concrete subtypes of the input type available in the current Julia session.
+
+  \item The method is definitely not type stable and a counterexample is provided
+  (i.e. a
+  concrete type that makes the method return a value of type that cannot be
+  inferred as concrete ahead of time). This can be concluded during the main
+  loop of the algorithm using the enumeration of concrete subtypes
+  (\textastep{steps 3--5}) or via
+  sampling from a types database (\textastep{steps 7--9}).
+
+  \item
+  Cannot decide type stability because the method's input type is
+  underconstrained but if sampling from a types database is requested, then no
+  counterexample is found. This is concluded after running out
+  of fuel and, if requested, sampling from a types database.
+\end{enumerate}
+
+Notice, that the meaning of the last outcome changes significantly depending on whether
+sampling is used. If sampling is not used, then most likely we did not get to
+check any concrete type, and this should really be treated as an ``I don't know''
+outcome. On the contrary, if sampling is used and we have a reason to believe
+that the type database consists of a representative sample of types that a
+program of interest could encounter, then this outcome should be treated as
+``most likely type stable on our workload''.
+
 
 \section{Evaluation}%
 \label{sec:approx:eval}
@@ -747,6 +840,6 @@ is what we expect for the output type of a \c{length} method.
 In \chapref{chap:empirical} I describe dynamic type stability analysis of a
 corpus of open-source Julia packages via executing test suites of the packages and
 inspecting the resulting method instances collected from the internal state of
-the virtual machine. Here, I run the algorithm from \secref{sec:algo} to
+the virtual machine. Here, I run the algorithm from \secref{sec:approx:algo} to
 statically infer type stability of the same packages and match the
 results.

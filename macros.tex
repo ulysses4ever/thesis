@@ -653,6 +653,14 @@
 % Compat with acmart
 \newcommand{\Description}[1]{}
 
+% Steps of algorithm
+\newcommand{\textastep}[1]{%
+\spacedlowsmallcaps{\textbf{#1}}%
+}
+\newcommand{\astep}[1]{%
+\textastep{Step #1}\xspace%
+}
+
 % ATTENTION, passengers:
 %     this is the VERY END of the file as pdflatex will see it!
 \endinput
