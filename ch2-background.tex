@@ -5,7 +5,7 @@
 \chapter{Background and Motivation}
 \label{chap:back}
 
-\section{Julia Background}%
+\section{Typeful Julia}%
 \label{sec:julia-back}
 
 The Julia language is designed around multiple dispatch~\cite{BezansonEKS17}.
@@ -24,10 +24,11 @@ Although at the source-code level, multiple methods look similar to
 overloading known from languages like C++ and Java, the key difference is that
 those languages resolve overloading statically whereas Julia does that
 dynamically using multiple dispatch.
+% TODO: maybe update + to the Julia version discussed elsewhere?
 
 \begin{figure}
 \begin{lstlisting}[language=julia]
-# 184 methods for generic function "+":
+# 190 methods for generic function "+":
 [1] +(a::Float16, b::Float16) in Base at float.jl:398
 [2] +(::Missing, ::Missing) in Base at missing.jl:114
 [3] +(::Missing) in Base at missing.jl:100
@@ -41,17 +42,140 @@ dynamically using multiple dispatch.
 \caption{Methods from the standard library}\label{plus}
 \end{figure}
 
-Julia supports a rich type language for defining method
-signatures. Base types consist of either bits types---types that have a direct
-binary representation, like integers---or structs. Both bits types and struct
-types, referred to as \emph{concrete types}, can have supertypes, but all
-supertypes are \emph{abstract types}. Abstract types can be arranged into a
-single-subtyping hierarchy rooted at \c{Any}, and no abstract type can be
-instantiated. The type language allows for further composition of these base
-types using unions, tuples, and bounded existential constructors; the result of
-composition can be abstract or concrete. \citet{oopsla18b} gives a detailed
-discussion of the type language and of subtyping.
+The expressive power of multiple dispatch
+stems from the way it constrains the applicability of a method to a
+particular set of values.  With it, programmers can write code that is
+concise and clear, as special cases can be relegated to dedicated methods.
+To pick the most specific applicable method, Julia's runtime relies on a subtype
+relation, denoted with \code{<:}, between run-time argument types and method signatures.
+Method signatures are defined with a rich type language, which supports
+user-defined nominal types, built-in tuples and unions, and bounded existential types. 
+The type language is discussed below, and a detailed discussion of subtyping can
+be found in \cite{oopsla18b}.
 
+\paragraph{Top and Bottom.} The abstract type \c{Any} is the
+type of all values and is the default when type annotations are omitted.
+The empty union \c{Union\{\}} is a subtype of all types; it is not
+inhabited by any value.  Unlike many common languages, Julia does not have a
+null value or a null type that is a subtype of all types.
+
+\paragraph{Datatypes.} 
+Datatypes can be \emph{abstract} or \emph{concrete}. Abstract datatypes may
+have subtypes but cannot have fields. Concrete datatypes have fields but
+cannot have declared subtypes.  Every value is an instance of a concrete
+\c{DataType} that has a size, storage layout, supertype (\c{Any} if
+not otherwise declared), and, optionally, field names.  Consider
+the following definitions.
+\begin{lstlisting}[language=julia]
+  abstract type Integer <: Real
+  end
+  
+  primitive type Bool <: Integer 8
+  end
+  
+  mutable struct PointRB <: Any
+    x::Real
+    y::Bool
+  end
+\end{lstlisting}
+\noindent The first declaration introduces \c{Integer} as a subtype of
+\c{Real}. The type is abstract; as such it cannot be instantiated.  The
+second declaration introduces a concrete, primitive, type for boolean values
+and specifies that its size is 8 bits; this type cannot be further subtyped.
+The last declaration introduces a concrete, mutable structure \c{PointRB} with two
+fields, \c{x} of abstract type \c{Real} and \c{y} of concrete type
+\c{Bool}.  Abstract types are always stored as references, while concrete
+types are unboxed.
+
+\paragraph{Parametric Datatypes.}
+The following defines an immtuable, para\-metrized, concrete type.
+\begin{lstlisting}[language=julia]
+  struct Rational{T<:Integer} <: Real
+    num :: T
+    den :: T
+  end
+\end{lstlisting}
+\noindent
+\c{Rational}, with no argument, is a valid type, containing all instances
+\c{Rational\{Int\}}, \c{Rational\{UInt\}}, \c{Rational\{Int8\}},
+etc.  Thus, the following holds:
+\[ \texttt{\small\color{jlbuiltin} Rational}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Int}   \texttt{\small\color{jlkeyword} \}\kern0pt}  \,\,\, \texttt{\small\color{jlkeyword} <:}\,\,   \texttt{\small\color{jlbuiltin} Rational}. \]
+Type parameters are \emph{invariant}, thus the following does not hold:
+\[ \texttt{\small\color{jlbuiltin} Rational}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Int}   \texttt{\small\color{jlkeyword} \}\kern0pt}  \,\,\, \texttt{\small\color{jlkeyword} <:}\,\,   \texttt{\small\color{jlbuiltin} Rational}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin} Integer}   \texttt{\small\color{jlkeyword} \}\kern0pt}.\]
+This restriction stems from
+practical considerations: the memory layout of abstract types
+(\c{Integer}) and concrete types (\c{Int}) is different and can impact
+the representation of the parametric type.  In a type declaration,
+parameters can be used to instantiate the supertype.  This allows the
+declaration of a \c{Diagonal} as an
+\c{AbstractMatrix} of values of type \c{T}:
+\begin{lstlisting}[language=julia]
+  struct Diagonal{T,V<:AbstractVector{T}} <: AbstractMatrix{T}
+    diag::V
+    ...
+  end
+\end{lstlisting}
+
+\paragraph{Tuple types.}
+Tuples are an abstraction of the arguments of a function; a tuple type is a
+parametrized immutable type where each parameter is the type of one field.
+Tuple types may have any number of parameters, and they are \emph{covariant}
+in their parameters: \c{Tuple\{Int\}} is a subtype of \c{Tuple\{Any\}}.
+\c{Tuple\{Any\}} is considered an abstract type; tuple types are only
+concrete if their parameters are.
+
+\paragraph{Union types.}
+A union is an abstract type which includes, as values, all instances of any
+of its argument types. Thus, the type \c{Union\{Integer, AbstractString\}}
+denotes any values from the set of \c{Integer} and \c{AbstractString}
+values.
+
+\paragraph{UnionAll.} A parametric type without arguments like \c{Rational}
+acts as a supertype of all its instances (\c{Rational\{Int\}} etc.)
+because it is a different kind of type called a \emph{UnionAll} type.  Julia
+documentation describes UnionAll types as ``the iterated union of types for
+all values of some parameter''; a more accurate way to write such type is
+\(  \texttt{\small\color{jlbuiltin} Rational}   \texttt{\small\color{jlkeyword} \{}  \texttt{\small\color{jlbase}T}  \texttt{\small\color{jlkeyword} \}\kern0pt} \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbuiltin} Union}\! \, \texttt{\small\color{jlkeyword} \{}  \,  \texttt{\small\color{jlkeyword} \}\kern0pt} \!\! \,\,\, \texttt{\small\color{jlkeyword} <:}\,\, \!\! \texttt{\small\color{jlbase}T} \!\! \,\,\, \texttt{\small\color{jlkeyword} <:}\,\, \!\! \texttt{\small\color{jlbuiltin} Any} \), meaning all values whose type is
+\c{Rational\{T\}} for some value of \c{T}.  UnionAll types correspond
+to bounded existential types in the literature, and a more usual notation
+for the type above would be $\exists$\,\c{T.Rational\{T\}}. Julia does not have explicit
+  \emph{pack/unpack} operations; UnionAll types are  abstract.
+Each \c{where} introduces a single type variable. The combination of
+parametric and existential types is expressive: the type of 1-dimensional
+arrays can be simply specified by
+%
+\(  \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}  \texttt{\small\color{jlbase}T}  \ottsym{,}   \texttt{\small\color{jlstring} 1}   \texttt{\small\color{jlkeyword} \}\kern0pt} \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbase}T} \).  
+%
+Type variable bounds can refer to outer type variables. For example, 
+\[  \texttt{\small\color{jlbuiltin} Tuple}\! \, \texttt{\small\color{jlkeyword} \{}  \texttt{\small\color{jlbase}T}  \ottsym{,}   \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}  \texttt{\small\color{jlbase}S}  \texttt{\small\color{jlkeyword} \}\kern0pt}  \texttt{\small\color{jlkeyword} \}\kern0pt} \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbase}S} \!\! \,\,\, \texttt{\small\color{jlkeyword} <:}\,\, \!\!  \texttt{\small\color{jlbuiltin} AbstractArray}    \texttt{\small\color{jlkeyword} \{}  \texttt{\small\color{jlbase}T}  \texttt{\small\color{jlkeyword} \}\kern0pt} \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbase}T} \!\! \,\,\, \texttt{\small\color{jlkeyword} <:}\,\, \!\!  \texttt{\small\color{jlbuiltin} Real}  \]
+%
+refers to 2-tuples whose first element is some \c{Real}, and whose second
+element is an \c{Array} of any kind of array whose element type contains
+the type of the first tuple element.  The \c{where} keyword itself can be
+nested. Consider the types
+\(  \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}  \texttt{\small\color{jlbase}T}  \ottsym{,}   \texttt{\small\color{jlstring} 1}   \texttt{\small\color{jlkeyword} \}\kern0pt}  \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbase}T}   \ottsym{,}   \texttt{\small\color{jlstring} 1}   \texttt{\small\color{jlkeyword} \}\kern0pt} \) and
+\(  \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}  \texttt{\small\color{jlbase}T}  \ottsym{,}   \texttt{\small\color{jlstring} 1}   \texttt{\small\color{jlkeyword} \}\kern0pt}  \ottsym{,}   \texttt{\small\color{jlstring} 1}   \texttt{\small\color{jlkeyword} \}\kern0pt} \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbase}T} \).
+The former defines a 1-dimensional array of 1-dimensional arrays; each of
+the inner arrays consists of objects of the same type, but this type may
+vary from one inner array to the next. The latter type instead defines
+a 1-dimensional array of 1-dimensional arrays all of whose inner arrays must
+have the same type.  UnionAll types can be explicitly instantiated
+with the type application syntax \(\texttt{\small\color{jlkeyword} (}   \ottnt{t} \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbase}T}   \texttt{\small\color{jlkeyword} )}  \texttt{\small\color{jlkeyword} \{}  \ottnt{t'}  \texttt{\small\color{jlkeyword} \}\kern0pt}\); partial
+instantiation is supported, and, for instance, \( \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Int}   \texttt{\small\color{jlkeyword} \}\kern0pt}\) denotes
+arrays of
+integers of arbitrary dimension.
+
+% Base types consist of either bits types---types that have a direct
+% binary representation, like integers---or structs. Both bits types and struct
+% types, referred to as \emph{concrete types}, can have supertypes, but all
+% supertypes are \emph{abstract types}. Abstract types can be arranged into a
+% single-subtyping hierarchy rooted at \c{Any}, and no abstract type can be
+% instantiated. The type language allows for further composition of these base
+% types using unions, tuples, and bounded existential constructors; the result of
+% composition can be abstract or concrete. \citet{oopsla18b} gives a detailed
+% discussion of the type language and of subtyping.
+
+\paragraph*{Multiple dispatch.}
 Any function call in a program, such as \c{x+y}, requires choosing one of the
 methods of the target function. \emph{Method dispatch} chooses the method using
 a multi-step process.

@@ -56,7 +56,7 @@ Second, I formalize the relationship between type-stable code and the
 ability of a just-in-time (JIT) compiler to perform type-based optimizations
 during program execution.
 %
-Finally, I device a procedure to statically approximate type stability, and
+Finally, I devise a procedure to statically approximate type stability, and
 provide Julia programmers with means to check stability without running their
 code or supplying sample inputs.
 % to this end, we find
@@ -94,7 +94,7 @@ code or supplying sample inputs.
 \label{chap-problem}
 
 Optimizing dynamic languages is difficult, and remains an active research field.
-Several state of the art JIT compilers do a good job but at the expense of being
+Several state-of-the-art JIT compilers do a good job but at the expense of being
 opaque and unpredictable for the user.
 Julia's unique design seemingly proposes a better approach based on the notion
 of type stability. My thesis is, therefore:
@@ -119,7 +119,7 @@ To validate this thesis I make the following contributions:
 
   \item
   Design an approach for approximating type stability without running the code and
-  build a tool that shows that this approximation is viable in practice.
+  demonstrate the practicality of the approach by building a tool for source code analysis.
 \end{enumerate}
 
 % maybe limitations?
