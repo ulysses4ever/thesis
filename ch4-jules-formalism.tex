@@ -1,7 +1,7 @@
 \chapter{Formalizing Type Stability at Run Time: Jules}\label{sec:jules}
 \label{chap:jules}
 
-To simplify reasoning about type stability and groundedness, we first
+To simplify reasoning about type stability and groundedness, I first
 define \jules, an abstract machine that provides an idealized version of
 Julia's intermediate representation (IR) and compilation model.
 \jules captures the just-in-time (JIT) compilation process that (1) specializes methods
@@ -16,14 +16,16 @@ our properties of interest; thus, \jules abstracts over type inference
 and uses it as a black box.
 
 \begin{figure}[h]
-  \includegraphics[width=1.1\columnwidth]{figs/compile.pdf}
+  \makebox[14cm][c]{
+  \includegraphics[width=1.5\columnwidth]{figs/compile.pdf}
+  }
   \caption{Compilation from Julia to \jules}\label{comp}
   \Description{Julia source code translated to Jules; one function is further compiled
     to a specialized version.}
 \end{figure}
 
 Fig.~\ref{comp} illustrates the relationship between Julia source code, the
-\jules intermediate representation, and the result of compilation. We do not model
+\jules intermediate representation, and the result of compilation. I do not model
 the translation from the source to \jules, and simply assume that the front-end
 generates well-formed \jules code.\footnote{The front-end does not devirtualize
 function calls, as Julia programmers do not have the ability to write direct
@@ -66,7 +68,7 @@ perspective of compilation; only compiled instances changes.
 
 \section{Syntax}
 
-The syntax of \jules methods is defined in~\figref{syntax}. We use two key
+The syntax of \jules methods is defined in~\figref{syntax}. I use two key
 notational devices. First, sequences are denoted \ol{\,\cdot\,}; thus, \ol\ty
 stands for types $\ty_0\dots\ty_n$, \ol{\v\k} for registers $\v\k_0\dots\v\k_n$,
 and \ol\st for instructions $\st_0\dots\st_n$. An empty sequence is written
@@ -111,8 +113,8 @@ the concrete integer type \int, and the universal abstract supertype \any.
 Method tables \mtbl contain method definitions of two sorts:
 first, original methods that come from source code;
 second, method instances compiled from original methods.
-To distinguish between the two sorts, we store the type signature of the
-original method in every table entry.
+To distinguish between the two sorts, the type signature of the
+original method is stored in every table entry.
 Thus, table entry
 $\langle\meth\m{\ol{\ty'}}{\ol{\v\j}}\ol\st,\ \ol{\ty}\rangle$ describes a
 method \m with parameter types $\ol{\ty'}$ and the body comprised of
@@ -145,7 +147,7 @@ performed implicitly.
 \section{Dynamic Semantics}
 
 \jules is parameterized over three components: method dispatch $\mathcal D$,
-type inference $\mathcal I$, and just-in-time compilation \jit. We do not
+type inference $\mathcal I$, and just-in-time compilation \jit. I do not
 specify how the first two work, and merely provide their interface and a set of
 criteria that they must meet (in sections \ref{sec:disp} and \ref{sec:infer},
 respectively). The compiler, \jit, is instantiated with either the identity
@@ -353,7 +355,7 @@ definition. As in Julia, dispatch is only defined for tuples of concrete types.
 \subsection{Inference}\label{sec:infer}
 
 The Julia compiler infers types of variables by forward data-flow analysis. Like
-dispatch, inference is complex, so we parameterize over it. For our purposes, an
+dispatch, inference is complex, so it is being parameterized over. For our purposes, an
 inference algorithm~$\mathcal I$ returns a sound typing for a sequence of
 instructions in a given method table,
 $\typeinf{\origmtbl{\mtbl}}{\ol\ty}{\ol\st}=\ol{\ty'}$, where \origmtbl{\mtbl}
@@ -403,7 +405,7 @@ translating a dynamically dispatched call into a direct call may be unsound.
 
 \begin{requirement}[Monotonicity]\label{prop:ti-monot}
   For all $\mtbl, \ol{\ty},
-  \ol\st, \ol{\ty'},$ such that $\typeinf\mtbl{\ol{\ty}}{\ol\st} = \ol{\ty'}$,
+  \ol\st, \ol{\ty'},$\\ such that $\typeinf\mtbl{\ol{\ty}}{\ol\st} = \ol{\ty'}$,
   \[
     \forall\, \ol{\ty''}.\quad \ol{\ty''} <: \ol{\ty}
     \quad \implies \quad
@@ -541,7 +543,7 @@ the original method has concrete argument types, the compiler does nothing.
 \section{Type Groundedness and Stability}\label{sec:stability-formal}
 %%------------------------------
 
-We now formally define the properties of interest, type stability and type
+I now formally define the properties of interest, type stability and type
 groundedness. Recall the informal definition which stated that a function is
 type stable if its return type depends only on its argument types, and type grounded
 if every variable's type depends only on the argument types. In this
@@ -635,7 +637,8 @@ the results of type inference.
 %
 \inferrule[D-Table]{
   \forall \langle \meth\m{\ol\Ty}{}\ol{\st'},\ol{\ty} \rangle \in \mtbl. \ \ \
-  \ol\Ty \neq \ol\ty \ \land\ \ol{\st'} \neq \done \ \ \ \implies \ \ \
+  \ol\Ty \neq \ol\ty \ \land\ \ol{\st'} \neq \done \\\\
+  \implies \\\\
   \meth\m{\ol\ty}{}\ol{\st} \in \mtbl \ \ \land \ \
   \ol{\ty'} = \typeinf{\origmtbl{\mtbl}}{\ol\Ty}{\ol\st} \ \ \land \ \
   \devirtst{\ol\Ty\,\ol{\ty'}}{\mtbl}{\ol{\st'}}
@@ -650,7 +653,7 @@ the results of type inference.
 \end{figure}
 
 
-Next, we review the definition from~\figref{fig:max-devirt} in more details.
+Next, let us review the definition from~\figref{fig:max-devirt} in more details.
 \SC{D-NoCall} states that an instruction without a call
 is maximally devirtualized. \SC{D-Disp} requires that for a dispatched call,
 \ol\ty does not have precise enough type information to resolve the call with
@@ -911,7 +914,7 @@ new maximally devirtualized instances.
 %% JB: the theorem puts together the lemmas and the run-time semantics.
 %%     Replaced by text for the main version.
 
-Putting it all together, we have shown that type-grounded methods
+Putting it all together, I have shown that type-grounded methods
 compile to method instances without dynamically dispatched calls.
 \PAPERVERSION{
 Namely, since a well-formed original table
@@ -961,29 +964,34 @@ and thus do not contain dispatched calls.
 
 \subsection{Relationship between Stability and Groundedness}\label{sec:stable}
 
-\MODIFY{
 While it is type groundedness that enables devirtualization,
 the weaker property, type stability, is also important in practice.
 Namely, stability of calles is crucial for groundedness
 of the caller if the type inference algorithm
 analyzes function calls using nothing but type information about the
-arguments. \PAPERVERSIONINLINE{(A formal definition and a proof of this property
-can be found in the extended version~\cite{oopsla21jules:arx}.)}{Since
-types are the object of the analysis, we call such type inference
+arguments. Since
+types are the object of the analysis, I call such type inference
 \emph{context-insensitive}: no information about the calling context
-other than types is available to the analysis of a function call.}
+other than types is available to the analysis of a function call.
 A more powerful type inference algorithm might be able to work around
 unstable methods in some cases, but even then, stability would be needed in general.
 
 As an example, consider two type-unstable callees that return either an integer
-or a string depending on the argument value, \c{f(x) = (x>0) ? 1 : "1"}
-and \c{g(x) = (rand()>x) ? 1 : "1"}, and two calls, \c{f(y)} and \c{g(y)}, where
+or a string depending on the argument value, %\c{f(x) = (x>0) ? 1 : "1"}
+\begin{lstlisting}[language=julia]
+  f(x) = (x > 0) ? 1 : "1"
+\end{lstlisting}
+and %\c{g(x) = (rand()>x) ? 1 : "1"},
+\begin{lstlisting}[language=julia]
+  g(x) = (rand() > x) ? 1 : "1"
+\end{lstlisting}
+and two calls, \c{f(y)} and \c{g(y)}, where
 \c{y} is equal to $0.5$. If only type information about \c{y} is available to
 type inference, both \c{f(y)} and \c{g(y)} are deemed to have abstract return
 types. Therefore, the results of such function calls cannot be stored in
 concretely typed registers, which immediately makes the calling code ungrounded.
 If type inference were to analyze the value of \c{y} (not just its type),
-the result of \c{f(y)} could be stored in a concrete, integer-valued register,
+the result of \c{f(y)}\!could be stored in a concrete, integer-valued register,
 as only the first branch of \c{f} is known to execute. However, the other call,
 \c{g(y)}, would still have to be assigned to an abstract register.
 Thus, to enable groundedness and optimization of the client code regardless of
@@ -1010,10 +1018,8 @@ condition for groundedness of the client,
 as conditional branches may lead to imprecise types,
 like in the \c{f0} example from \figref{fla}.
 
-}
-
 \PAPERVERSION{}{
-In what follows, we give a formal definition of
+In what follows, I give a formal definition of
 context-insensitive type inference, and
 show that in that case, \emph{reachable} callees of a grounded method need to be
 type stable.\ADD{
@@ -1089,11 +1095,11 @@ of the calling instruction.
 \section{Correctness of Compilation}\label{sec:jit-correct}
 
 \ADD{
-In this section, we prove that evaluating a program with just-in-time
-compilation yields the same result as if no compilation occurred. We use two
+In this section, I prove that evaluating a program with just-in-time
+compilation yields the same result as if no compilation occurred. I use two
 instantiations of the \jules semantics, one (written~\stepd) where
 \jit is the identity, and the other (written \stepj) where
-\jit is defined as before. Our proof strategy is to
+\jit is defined as before. The proof strategy is to
 \begin{enumerate}
   \item define the optimization relation $\eqdirop$ which relates original and
     optimized code (\figref{fig:opt-config}),
@@ -1241,7 +1247,7 @@ inference. Based on the results of type inference, stacks $\frm, \frm'$ need
 to be related in method tables $\mtbl, \mtbl'$, and the method tables themselves
 also need to be related.
 
-As we show below, when run with the dispatch semantics, related configurations
+As I show below, when run with the dispatch semantics, related configurations
 are guaranteed to run in lock-step and produce the same result.
 
 \begin{lemma}[Bisimulation of Related Configurations]\label{lem:bisim-disp}
@@ -1256,9 +1262,9 @@ $\optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
   \begin{enumerate}
     \item Forward direction:
       \[
-      \begin{array}{l}
-        \config{\frm_1}{\mtbl} \stepd \config{\frm_2}{\mtbl}
-        \implies
+      \begin{array}{c}
+        \config{\frm_1}{\mtbl} \stepd \config{\frm_2}{\mtbl} \\
+        \implies \\
         \exists \frm'_2, \Delta'_1.\quad
           \config{\frm'_1}{\mtbl'} \stepd \config{\frm'_2}{\mtbl'}\ \ \land\ \
           \optconfig{\frm_2}{\mtbl}{\frm'_2}{\mtbl'}{\Delta'_1}.
@@ -1266,9 +1272,9 @@ $\optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
       \]
     \item Backward direction:
       \[
-      \begin{array}{l}
-        \config{\frm'_1}{\mtbl'} \stepd \config{\frm'_2}{\mtbl'}
-        \implies
+      \begin{array}{c}
+        \config{\frm'_1}{\mtbl'} \stepd \config{\frm'_2}{\mtbl'} \\
+        \implies\\
         \exists \frm_2, \Delta'_1.\quad
           \config{\frm_1}{\mtbl} \stepd \config{\frm_2}{\mtbl}\ \ \land\ \
           \optconfig{\frm_2}{\mtbl}{\frm'_2}{\mtbl'}{\Delta'_1}.
@@ -1636,7 +1642,7 @@ $\optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
 }
 \end{proof}
 
-Next, we show that compilation as defined in \figref{fig:compile-wd}
+Next, I show that compilation as defined in \figref{fig:compile-wd}
 produces optimized code in an optimized method table
 according to \figref{fig:opt-config}.
 
@@ -1838,9 +1844,9 @@ $  \optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
   \begin{enumerate}
     \item Forward direction:
       \[
-      \begin{array}{l}
-        \config{\frm_1}{\mtbl} \stepd \config{\frm_2}{\mtbl}
-        \implies
+      \begin{array}{c}
+        \config{\frm_1}{\mtbl} \stepd \config{\frm_2}{\mtbl}\\
+        \implies\\
         \exists \frm'_2, \mtbl'', \Delta'_1.\quad
           \config{\frm'_1}{\mtbl'} \stepj \config{\frm'_2}{\mtbl''}\ \ \land\ \
           \optconfig{\frm_2}{\mtbl}{\frm'_2}{\mtbl''}{\Delta'_1}.
@@ -1848,9 +1854,9 @@ $  \optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
       \]
     \item Backward direction:
       \[
-      \begin{array}{l}
-        \config{\frm'_1}{\mtbl'} \stepj \config{\frm'_2}{\mtbl''}
-        \implies
+      \begin{array}{c}
+        \config{\frm'_1}{\mtbl'} \stepj \config{\frm'_2}{\mtbl''}\\
+        \implies\\
         \exists \frm_2, \Delta'_1.\quad
           \config{\frm_1}{\mtbl} \stepd \config{\frm_2}{\mtbl}\ \ \land\ \
           \optconfig{\frm_2}{\mtbl}{\frm'_2}{\mtbl''}{\Delta'_1}.\qquad

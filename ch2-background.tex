@@ -15,8 +15,9 @@ signature, and all methods are stored in a so-called method table.
 At run time, the Julia implementation dispatches a function call to
 the \emph{most specific} method by comparing the types of the arguments to the
 types of the parameters of all methods of that function. As an example of a
-function and its constituent methods, consider the \c{+} function. As of version 1.5.4 of the
-language, there are 190 implementations of \c{+}, each covering a
+function and its constituent methods, consider the \c{+} function. 
+As of version 1.8.5 of the
+language, there are 206 implementations of \c{+}, each covering a
 specific case determined by its type signature. Fig.~\ref{plus} displays custom
 implementations for 16-bit floating point numbers, missing values,
 big-floats/big-integers, and complex arithmetic.
@@ -24,11 +25,10 @@ Although at the source-code level, multiple methods look similar to
 overloading known from languages like C++ and Java, the key difference is that
 those languages resolve overloading statically whereas Julia does that
 dynamically using multiple dispatch.
-% TODO: maybe update + to the Julia version discussed elsewhere?
 
 \begin{figure}
 \begin{lstlisting}[language=julia]
-# 190 methods for generic function "+":
+# 206 methods for generic function "+":
 [1] +(a::Float16, b::Float16) in Base at float.jl:398
 [2] +(::Missing, ::Missing) in Base at missing.jl:114
 [3] +(::Missing) in Base at missing.jl:100
@@ -48,7 +48,7 @@ particular set of values.  With it, programmers can write code that is
 concise and clear, as special cases can be relegated to dedicated methods.
 To pick the most specific applicable method, Julia's runtime relies on a subtype
 relation, denoted with \code{<:}, between run-time argument types and method signatures.
-Method signatures are defined with a rich type language, which supports
+Method signatures are defined with a rich type language that supports
 user-defined nominal types, built-in tuples and unions, and bounded existential types. 
 The type language is discussed below, and a detailed discussion of subtyping can
 be found in \cite{oopsla18b}.
@@ -65,7 +65,7 @@ have subtypes but cannot have fields. Concrete datatypes have fields but
 cannot have declared subtypes.  Every value is an instance of a concrete
 \c{DataType} that has a size, storage layout, supertype (\c{Any} if
 not otherwise declared), and, optionally, field names.  Consider
-the following definitions.
+the following definitions:
 \begin{lstlisting}[language=julia]
   abstract type Integer <: Real
   end
@@ -100,7 +100,8 @@ The following defines an immtuable, para\-metrized, concrete type.
 \c{Rational\{Int\}}, \c{Rational\{UInt\}}, \c{Rational\{Int8\}},
 etc.  Thus, the following holds:
 \[ \texttt{\small\color{jlbuiltin} Rational}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Int}   \texttt{\small\color{jlkeyword} \}\kern0pt}  \,\,\, \texttt{\small\color{jlkeyword} <:}\,\,   \texttt{\small\color{jlbuiltin} Rational}. \]
-Type parameters are \emph{invariant}, thus the following does not hold:
+Type parameters are \emph{invariant}, thus the following does not hold
+even though \( \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Int} \,\,\, \texttt{\small\color{jlkeyword} <:}\,\, \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Integer} \):
 \[ \texttt{\small\color{jlbuiltin} Rational}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Int}   \texttt{\small\color{jlkeyword} \}\kern0pt}  \,\,\, \texttt{\small\color{jlkeyword} <:}\,\,   \texttt{\small\color{jlbuiltin} Rational}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin} Integer}   \texttt{\small\color{jlkeyword} \}\kern0pt}.\]
 This restriction stems from
 practical considerations: the memory layout of abstract types
@@ -130,7 +131,7 @@ of its argument types. Thus, the type \c{Union\{Integer, AbstractString\}}
 denotes any values from the set of \c{Integer} and \c{AbstractString}
 values.
 
-\paragraph{UnionAll.} A parametric type without arguments like \c{Rational}
+\paragraph{Existential types.} A parametric type without arguments like \c{Rational}
 acts as a supertype of all its instances (\c{Rational\{Int\}} etc.)
 because it is a different kind of type called a \emph{UnionAll} type.  Julia
 documentation describes UnionAll types as ``the iterated union of types for
@@ -159,7 +160,7 @@ The former defines a 1-dimensional array of 1-dimensional arrays; each of
 the inner arrays consists of objects of the same type, but this type may
 vary from one inner array to the next. The latter type instead defines
 a 1-dimensional array of 1-dimensional arrays all of whose inner arrays must
-have the same type.  UnionAll types can be explicitly instantiated
+have the same type.  Existential types can be explicitly instantiated
 with the type application syntax \(\texttt{\small\color{jlkeyword} (}   \ottnt{t} \:  \texttt{\small\color{jlbase}\textbf{where}\kern0pt} \:  \texttt{\small\color{jlbase}T}   \texttt{\small\color{jlkeyword} )}  \texttt{\small\color{jlkeyword} \{}  \ottnt{t'}  \texttt{\small\color{jlkeyword} \}\kern0pt}\); partial
 instantiation is supported, and, for instance, \( \texttt{\small\color{jlbuiltin} Array}   \texttt{\small\color{jlkeyword} \{}   \texttt{\small\color{jlbuiltin}\color{jlbuiltin} Int}   \texttt{\small\color{jlkeyword} \}\kern0pt}\) denotes
 arrays of
@@ -186,7 +187,11 @@ order. Finally, the call is dispatched to the most specific method---a method
 such that no other applicable method is its strict subtype. If no such
 method exists, an error is produced. As an example, consider the above
 definition of \c{+}: a call with two \c{BigFloat}'s dispatches to
-definition 8 from \figref{plus}: \c{+(x::BigFloat, y::BigFloat)}.
+definition 8 from \figref{plus}: 
+\begin{lstlisting}[language=julia]
+[8] +(x::BigFloat, y::BigFloat)
+\end{lstlisting}
+%\c{+(x::BigFloat, y::BigFloat)}.
 
 Function calls are pervasive in Julia, and their efficiency is crucial for
 performance. However, the many complex type-level operations involved in dispatch
@@ -308,7 +313,7 @@ Furthermore, the documentation states that
 \end{itquote}
 
 Effectively, there are two competing, type-related properties
-of function bodies. To address this confusion, we
+of function bodies. To address this confusion, I
 define and refer to them using two distinct terms:
 \begin{itemize}
   \item \emph{type stability} is when a function's return type depends only on
@@ -317,20 +322,20 @@ define and refer to them using two distinct terms:
     only on the argument types.
 \end{itemize}
 \MODIFY{Although type stability is strictly weaker than type groundedness,
-for the purposes of this paper, we are interested in both properties.
+we are interested in both properties.
 The latter, type groundedness, is useful for performance of the function itself,
 as it implies that unboxing, devirtualization, and inlining can occur.
 The former, type stability, allows the function to be used efficiently
 by other functions: namely, type-grounded functions may call a function that
 is only type stable but not grounded.
-For brevity, when the context is clear, we will refer to type stability and
+For brevity, when the context is clear, I will refer to type stability and
 type groundedness as stability and groundedness in what follows.
 }
 
 \subsection{Flavors of Type Stability}
 
 \begin{figure}[t]\footnotesize
-\begin{minipage}{4cm}\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
+\begin{minipage}{5cm}\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
 function f0(x)
   if (good(x))
     0
@@ -377,7 +382,7 @@ returns true, \c{f0} returns an \c{Int64} value, otherwise \c{f0} returns a
 \c{String}. Function \c{f1} is trivially type stable as all control-flow paths
 return a constant of \c{Int64} type. Function \c{f2} is type stable as
 long as the negation operator is type stable and returns a value of the same type
-as its argument. As an example, we show a method \c{-(::Float64)} that causes
+as its argument. In the example, method \c{-(::Float64)} of the negation operator causes
 \c{f2(::Float64)} to lose type stability. This is a common bug where the function
 \c{(-)} either returns a \c{Float64} or \c{Int64} due to the constant \c{0} being
 of type \c{Int64}.  The proper, Julia-style implementation for this method is
@@ -390,14 +395,33 @@ method to lose type stability.
 \subsection{Type Stability Versus Type Groundedness}
 
 Type stability of a method is important for the groundedness of its callers.
-Consider the function \c{h(x::Int64)=g(x)+1}. If \c{g(x)=x}, it follows that
+Consider the function %\c{h(x::Int64)=g(x)+1}. 
+\begin{lstlisting}[language=julia]
+  h(x :: Int64) = g(x) + 1
+\end{lstlisting}
+If %\c{g(x)=x}, 
+\begin{lstlisting}[language=julia]
+  g(x) = x
+\end{lstlisting}
+it follows that
 \c{h} is both stable and grounded, as \c{g} will always return an \c{Int64}, and
-so will \c{h}. However, if we define \c{g(x) = (x==2) ? "Ho" : 4}, then \c{h}
+so will \c{h}. However, if we define %\c{g(x) = (x==2) ? "Ho" : 4}, 
+\begin{lstlisting}[language=julia]
+  g(x) = (x == 2) ? "Ho" : 4
+\end{lstlisting}
+then \c{h}
 suddenly loses both properties. To recover stability and groundedness of \c{h},
 it is necessary to make \c{g} type stable, yet it does not have to be grounded.
 For example, despite the presence of the imprecise variable \c{y}, the following
-definition makes \c{h} grounded: \c{g(x) = let y = (x==2 ? "Ho" : 4) in x
-end}.
+definition makes \c{h} grounded: %\c{g(x) = let y = (x==2 ? "Ho" : 4) in x end}.
+\begin{lstlisting}[language=julia]
+  g(x) = 
+    let
+      y = (x==2 ? "Ho" : 4)
+    in
+      x 
+    end
+\end{lstlisting}
 
 In practice, type stability is sought after when making architectural decisions.
 Idiomatic Julia functions are small and have no internal type-directed
@@ -431,8 +455,9 @@ modeled with subtyping in Julia. Take a hierarchy of an abstract type \c{Expr}
 and its two concrete subtypes, \c{Lit} and \c{BinOp}.
 Such a hierarchy is convenient, because
 it allows for an \c{Expr} evaluator written with multiple dispatch:
-\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language=julia]
-run(e :: Lit) = ...                       run(e :: BinOp) = ...
+\begin{lstlisting}[language=julia]
+  run(e :: Lit) = ...
+  run(e :: BinOp) = ...
 \end{lstlisting}
 If we want the evaluator to be called with the result of a function
 \c{parse(s :: String)}, the latter cannot be type stable: \c{parse} will return
