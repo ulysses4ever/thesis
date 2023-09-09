@@ -897,7 +897,10 @@ stable without sampling, and 69\% of methods as type stable with sampling. The
 last figure comes close to the average 72\% of type-stable methods traced via
 dynamic analysis. As expected, our static approach is more conservative in granting the
 badge because it explores more possibilities for the inputs than what actually
-occurs in test suites.
+occurs in test suites. These numbers also lead us to believe that methods which
+make the algorithm run out of fuel in the sampling mode are largely type
+unstable. At least, the sum of such methods and definitely unstable methods (31\%) is
+just over the number of unstable methods identified by tracing (28\%).
 
 The package having the highest percentage of type-stable methods remains the same as
 with the dynamic analysis --- Genie. This is an encouraging result: sometimes static
@@ -909,11 +912,12 @@ issues in practice is also reported as such by the tool.
 The least type-stable package, according to the dynamic analysis is Knet, and it
 is also identifiable on \figref{figs:approx:eval}. The only difference is that
 on the figure most of the methods in Knet are marked as \emph{NoFuel} (80\%)
-instead of \emph{Unstable}. The \emph{NoFuel} metrics corresponds to the third
-of the three possible outcomes listed in \secref{sec:approx:algo-final}. This
-result for Knet shows that the \emph{NoFuel} metrics should, perhaps, be
-interpreted as \emph{Unstable}, at least, for the packages which we know to have issues
-with type stability.
+instead of \emph{Unstable} (the \emph{NoFuel} metrics corresponds to the third
+of the three possible outcomes listed in \secref{sec:approx:algo-final}). This
+aligns with the observation above that, after sampling is turned on,
+\emph{NoFuel} metrics should, perhaps, be interpreted as \emph{Unstable}.
+% , at
+% least, for the packages which we know to have issues with type stability.
 
 Close to Knet in the amount of methods marked \emph{NoFuel} is
 DifferentialEquations (called DiffEq for brevity on the figure), 76\% (24\%
@@ -928,8 +932,8 @@ not identified as type stable is the only significant one (more than 25
 percentage points): all other packages has this number increased in less
 than 20 percentage points with respect to the results of the dynamic analysis.
 
-Sampling makes the largest difference for packages that have more
-\emph{NoFuel}-methods, which is to be expected. Foe example, $20$ or more
+\emph{Sampling} makes the largest difference for packages that have more
+\emph{NoFuel}-methods, which is to be expected. For example, $20$ or more
 percentage points increase in the number of stable methods due to sampling is
 found in least type-stable packages: Knet, DifferentialEquations, Gen and Flux.
 Unexpected is that finding counterexamples, i.e. increasing
