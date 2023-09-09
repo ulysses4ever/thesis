@@ -757,9 +757,13 @@ loaded by the tool.
 
 So far, we assumed that to determine type stability of a method, it is necessary
 to run Julia's type inferencer on that method with all possible \emph{concrete} input
-types. Indeed, this naturally follows from our understanding of Julia's inner
-workings and modeled formally in~\chapref{chap:jules}. Let us now revise this
-assumption in trying to solve the search state growth problem.
+types. Indeed, this naturally follows from %our understanding of Julia's inner
+%workings and modeled formally in~\chapref{chap:jules}. Let us now revise this
+the definition of type stability defined formally in~\chapref{chap:jules}.
+However, to solve the problem of search space explosion, 
+the assumption can be revised.
+%Let us now revise this
+%assumption in trying to solve the search state growth problem.
 
 A usual definition of type stability (e.g. the formal one I give in
 \defref{def:ground}) has the form of an implication: if a condition (a type
@@ -774,22 +778,23 @@ Relaxing the definition of type stability as described makes for an easier task
 and identifies a special group of methods I call \emph{type-constant methods}.
 Those methods hold two independent properties:
 \begin{itemize}
-  \item the type of the input do not allow influence the type of the output,
+  \item the type of the input does not impact the type of the outut, %do not allow influence the type of the output,
   \item the output type can be inferred as concrete.
 \end{itemize}
 Type-constant methods are a proper subset of all type-stable methods.
 
-The idea of type-constant methods allows another solution for the search state
+The idea of type-constant methods allows another solution for the search space
 problem. In particular, before trying to solve the potentially hard problem of
-inferring type stability the algorithm checks whether the given method is
-type-constant with a single call to the type inferencer.
+inferring type stability using concrete input types,
+the algorithm checks whether the given method is
+type constant with a single call to the type inferencer.
 
 % TODO: add discussion of how likely it is that a type-stable method is also type-constant
 % and some possibly important classes of type-constant methods like''
 % 'interestingly polymorphic' ones from \ssecref{ssec:empirical:manual}
 
 In order to decide the easier task, the algorithm still needs to run Julia's
-type inferencer, and for that some input type should be provided. The obvious
+type inferencer, and for that, some input type should be provided. The obvious
 candidate for such a type is the one taken directly from the method signature.
 Such input type, even if abstract, also makes sure that Julia will dispatch the
 same method that is currently analyzed, and it is the most general (w.r.t.
@@ -821,9 +826,10 @@ This section describes an updated version of the algorithm to infer type
 stability (\secref{sec:approx:algo}) enhanced with the approximation ideas
 presented in \secref{sec:approx:space}.
 
-The parameters of the updated algorithm is the amount of fuel we use to discover
-concrete types and whether to use a type database for sampling (and the database
-itself if we do want to use one).
+The updated algorithm has two parameters:
+the amount of fuel we use to discover concrete types,
+and whether to use a type database for sampling (and if so, the database
+itself as one more parameter).
 Every step of the updated algorithm below is marked as either changed or not
 changed or new with respect to the step with the same number (if not new) in the
 original version of the algorithm (\secref{sec:approx:algo}).
@@ -872,15 +878,17 @@ The steps of the updated algorithm are as follows.
     of input \c c is a counterexample.
 \end{description}
 
-The possible outcomes of the updated algorithm are as follows.
+Possible outcomes of the updated algorithm are as follows.
 \begin{enumerate}
 
   \item The method is type stable against all known types in the current session
-  or the set of concrete types presented
-  by the type database. This can be concluded either after
+  and, if the type database is used for underconstrained types,
+  for the set of concrete types presented by the type database. 
+  This can be concluded either after
   running type inference with abstract types
   (\ssecref{ssec:approx:space:abstract}), or after exhaustively enumerating all
-  known concrete subtypes of the input, or after trying all the types in the database.
+  known concrete subtypes of the input, or,
+  for underconstrained types, after trying all the types in the database.
 
   \item The method is definitely not type stable and a counterexample is provided
   (i.e. a
@@ -891,12 +899,14 @@ The possible outcomes of the updated algorithm are as follows.
   sampling from a types database (\textastep{steps 7--9}).
 
   \item
-  Cannot decide type stability because the method's input type is
-  underconstrained but if sampling from a types database is requested, then no
-  counterexample is found. This is concluded after running out
-  of fuel and, if requested, sampling from a types database.
+  Cannot decide type stability because the algorithm ran out of fuel and,
+  if the type database is used for underconstrained types encountered during
+  the enumeration process (but not the input type itself), no
+  counterexample was found in the database. %This is concluded after running out
+  %of fuel and, if requested, sampling from a types database.
 \end{enumerate}
 
+%TODO: example
 
 \section{Evaluation}%
 \label{sec:approx:eval}
