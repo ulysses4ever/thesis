@@ -827,14 +827,15 @@ The steps of the updated algorithm are as follows.
     of input \c c is a counterexample.
 \end{description}
 
-
 The possible outcomes of the updated algorithm are as follows.
 \begin{enumerate}
 
-  \item The method is definitely type stable. This can be concluded either after
+  \item The method is type stable against all known types in the current session
+  or the set of concrete types presented
+  by the type database. This can be concluded either after
   running type inference with abstract types
-  (\ssecref{ssec:approx:space:abstract}) or after exhaustively enumerating all
-  concrete subtypes of the input type available in the current Julia session.
+  (\ssecref{ssec:approx:space:abstract}), or after exhaustively enumerating all
+  known concrete subtypes of the input, or after trying all the types in the database.
 
   \item The method is definitely not type stable and a counterexample is provided
   (i.e. a
