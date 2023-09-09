@@ -822,91 +822,38 @@ existential \c{Array} type:
 Hence, the type inferencer is able to infer the concrete \c{Int64} type, which
 is what we expect for the output type of a \c{length} method.
 
-\section{Updated Algorithm} %?
+\section{Parameters and Outcomes of The Algorithm} %?
 \label{sec:approx:algo-final}
 
-This section describes an updated version of the algorithm to infer type
-stability (\secref{sec:approx:algo}) enhanced with the approximation ideas
-presented in \secref{sec:approx:space}.
-
-The updated algorithm has two parameters:
-the amount of fuel we use to discover concrete types,
-and whether to use a type database for sampling (and if so, the database
-itself as one more parameter).
-Every step of the updated algorithm below is marked as either changed or not
-changed or new with respect to the step with the same number (if not new) in the
-original version of the algorithm (\secref{sec:approx:algo}).
-If a step is new, then a reference to the subsection with the corresponding idea is provided.
-The steps of the updated algorithm are as follows.
-\begin{description}
-  \item[Step 1 (not changed)] Input of the algorithm is a Julia method \c{m}.
-  \item[Step 2 (not changed)] Extract the input type \c{t} of the method.
-  \item[Step 2a (new step, \ssecref{ssec:approx:space:abstract})]
-    Run Julia's type inference with \c m and \c t as the
-    inputs. If the result is concrete, \textastep{exit} with the result: the given
-    method is type stable.
-  \item[Step 3 (changed)] Try to get a fresh concrete subtype of the input type
-    from the enumeration procedure as described in \ssecref{sec:approx:enu}
-    but ran with the fuel. Possible outcomes:
-    \begin{itemize}
-      \item If the procedure runs out of fuel, go to
-        \astep{6}.
-      \item If the procedure finds no new concrete types, \textastep{exit} with the
-      result: the given method is type stable.
-      \item If the procedure returns a concrete type \c c, proceed to the next step.
-    \end{itemize}
-  \item[Step 4 (not changed)] Run Julia’s type inference with \c m and \c c as
-    inputs to get the inferred type of the result \c r.
-  \item[Step 5 (not changed)]
-    If \c r  is concrete, go to \astep 3. Otherwise, \textastep{exit}
-    with the result: the given method is not type stable and the possible type
-    of input \c c is a counterexample.
-  \item[Step 6 (new)]
-    If sampling from a types database is not requested, \textastep{EXIT} with
-    the result: underconstrained input type.
-    Otherwise,
-    a loop similar to
-    \textastep{steps 3--5} is entered in the next step.
-  \item[Step 7 (new)]
-    Try to get the next concrete type from the type database.
-    If no fresh concrete type is found in the database, \textastep{EXIT} with
-    the result: underconstrained input type.
-    Otherwise, proceed to the next step with a concrete type \c c.
-  \item[Step 8 (new)]
-    Run Julia’s type inference with \c m and \c c as
-    inputs to get the inferred type of the result \c r.
-  \item[Step 9 (new)]
-    If \c r  is concrete, go to \astep 7. Otherwise, \textastep{exit}
-    with the result: the given method is not type stable and the possible type
-    of input \c c is a counterexample.
-\end{description}
+After updates as described in the previous section, the algorithm receives two
+parameters: the amount of fuel to use to discover concrete types, and whether to
+use a type database for sampling (and if so, the database itself as one more
+parameter).
 
 Possible outcomes of the updated algorithm are as follows.
 \begin{enumerate}
 
-  \item The method is type stable against all known types in the current session
-  and, if the type database is used for underconstrained types,
-  for the set of concrete types presented by the type database. 
-  This can be concluded either after
-  running type inference with abstract types
-  (\ssecref{ssec:approx:space:abstract}), or after exhaustively enumerating all
-  known concrete subtypes of the input, or,
-  for underconstrained types, after trying all the types in the database.
+  \item The method is type stable against all known concrete types in the current session
+  or, if the type database is used for underconstrained types,
+  against a subset of all known types defined
+  %via substitution of types coming
+  %
+  as follows. The concrete types are collected with the
+  enumeration procedure when substituting types coming from the type database
+  for the \c{Any} type.
 
-  \item The method is definitely not type stable and a counterexample is provided
-  (i.e. a
+  The outcome can also be reached via running type inference with abstract types
+  (\ssecref{ssec:approx:space:abstract}).
+
+  \item The method is definitely not type stable and a counterexample is provided,
+  i.e. a
   concrete type that makes the method return a value of type that cannot be
-  inferred as concrete ahead of time). This can be concluded during the main
-  loop of the algorithm using the enumeration of concrete subtypes
-  (\textastep{steps 3--5}) or via
-  sampling from a types database (\textastep{steps 7--9}).
+  inferred as concrete ahead of time.
 
   \item
-  Cannot decide type stability because the algorithm ran out of fuel and,
-  if the type database is used for underconstrained types encountered during
-  the enumeration process (but not the input type itself), no
-  counterexample was found in the database. %This is concluded after running out
-  %of fuel and, if requested, sampling from a types database.
+  Cannot decide type stability because the algorithm ran out of fuel
+  while running the enumeration (no matter whether it was enhanced with a type
+  database or not).
 \end{enumerate}
 
 %TODO: example
@@ -914,7 +861,7 @@ Possible outcomes of the updated algorithm are as follows.
 \section{Evaluation}%
 \label{sec:approx:eval}
 
-In \chapref{chap:empirical} I describe dynamic type stability analysis of a
+In \chapref{chap:empirical}, I describe a dynamic type stability analysis of a
 corpus of open-source Julia packages. The analysis is based on executing test
 suites of the packages and inspecting the resulting method instances collected
 from the internal state of the virtual machine. To evaluate the algorithm
