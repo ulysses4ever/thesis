@@ -47,24 +47,26 @@
 % \end{enumerate}
 
 Chapters~\ref{sec:empirical} and~\ref{sec:jules} consider type stability as it
-relates to program \emph{execution}: chapter~\ref{sec:empirical} analyzes Julia
-VM state after package test suites ran, and chapter~\ref{sec:jules} models a
-type-specializing just-in-time compiler that does its main job at the run time.
+relates to program \emph{execution}: chapter~\ref{sec:empirical} analyzes the
+state of Julia's virtual machine after running package test suites, and chapter~\ref{sec:jules} models a
+type-specializing just-in-time compiler that executes at run time.
 In this chapter, I set to approximate the property of type stability for
 arbitrary Julia code statically, without running the code in question.
-
-\paragraph{Note on Dropping Type Groundedness} It turns out that attempts to
-infer type groundedness statically fail fast: this is too low-level of a
-notion requiring us to reason on a level of intermediate representation, and at
-that level precision gets lost very fast. The good news is that, as we learned
-in~\chapref{sec:jules}, type groundedness is enabled by calling type-stable
-API, so being able to provide such API should be enough for a careful client.
-Therefore, in this chapter we focus on analyzing type stability of methods, and
-leave type groundedness off.
+I focus only on type stability but not type groundedness because,
+as discussed in~\chapref{sec:jules}, groundedness is enabled by calling
+type-stable API.
+% \paragraph{Note on Dropping Type Groundedness.} It turns out that attempts to
+% infer type groundedness statically fail fast: this is too low-level of a
+% notion requiring us to reason at the level of intermediate representation, and at
+% that level, precision gets lost very fast. The good news is that, as we learned
+% in~\chapref{sec:jules}, type groundedness is enabled by calling type-stable
+% API, so being able to provide such API should be enough for a careful client.
+% Therefore, in this chapter we focus on analyzing type stability of methods, and
+% leave type groundedness off.
 
 \section{Inferring Type Stability versus Inferring Types}
 
-Explaining my method to infer type stability requires a definition for it.
+Explaining my approach to infer type stability requires a definition of stability.
 So far, I approached the definition twice: informally
 in~\ref{ssect:ts-informal} and formally in~\ref{sec:stability-formal}.
 The original informal
@@ -73,10 +75,10 @@ abstract types: using this loophole, any code can be declared type stable
 because it is always possible to ``predict the type of the output'' as \c{Any}.
 Building upon the formal definition (that does acknowledge the distinction
 between abstract and concrete types)
-we provide another informal definition to explain intuitions behind this
+I provide another informal definition to explain intuitions behind this
 chapter.
 \begin{definition}[Type Stability, Informally]
-  A Julia method is called \emph{type stable} if for any concrete type of the
+  A Julia method is called \emph{type stable} if, for any concrete type of the
   input, it is possible to infer a concrete type of the return value.
 \end{definition}
 
@@ -98,7 +100,8 @@ It is straightforward to infer that, given any concrete input type, the return
 value is also concretely typed: the one bit of information carries over to the
 result in one step.
 
-Another example, the increment function, shows that the task becomes unwieldy fast.
+However, another example---the increment function---shows that the task quickly 
+becomes unwieldy.
 %
 \begin{lstlisting}
   function inc(x)
@@ -106,17 +109,17 @@ Another example, the increment function, shows that the task becomes unwieldy fa
   end
 \end{lstlisting}
 %
-Concreteness of the result returned by \c{inc} depends on the same property of
+Concreteness of the result returned by \c{inc} depends on concreteness of
 the result of the call to \c{+}. In turn, the property of the return type of
-\c{+} depends on which \c{+} method Julia will dispatch to at the run time.
-There are about two hundreds method implementations of \c{+} in the standard
+\c{+} depends on which \c{+} method Julia will dispatch to at run time.
+There are about two hundred method implementations of \c{+} in the standard
 library alone, and packages add more. Some of those methods are type stable
-(e.g. \c{+(::Int64,::Int64)}), and some of them not (e.g.
+(e.g. \c{+(::Int64,::Int64)}), and some of them are not (e.g.
 \lstinline|+(::Rational{Bool},::Rational{Bool}|)
 \footnote{%
   The reason for the
-  \c{+(::Rational\{Bool\},::Rational\{Bool\})} method to be not type
-  stable is not important, but in a nutshell, Julia has made a questionable
+  \c{+(::Rational\{Bool\},::Rational\{Bool\})} method to be type
+  unstable is not important, but in a nutshell, Julia has made a questionable
   design decision about the return type of \c{{+}(::Bool,::Bool)}, which in the
   current implementation is \c{Int}
   (see discussion \url{https://github.com/JuliaLang/julia/issues/19168}),
@@ -126,38 +129,49 @@ library alone, and packages add more. Some of those methods are type stable
 ).
 Therefore,
 to infer the property of interest, in general,
-we need to predict which methods are selected at the run time.
+we need to predict which methods are selected at run time.
 
 The \c{inc} example shows that inferring type stability of Julia code
 requires
-reasoning about which methods will be called at the run time, which, in a
-language with dynamic dispatch, leads
-to reasoning about the \emph{types} of intermediate values, rather than only
-the concreteness bit. But if we had a tool to compute typing information
-beforehand, we would not need to build a special purpose analysis for type
-stability: it suffices to ask the tool for the type of the return value and
-check if that type is concrete. The observation of interactions between type
-stability and type inference can be formulated as the following conjecture.
+reasoning about %which methods will be called at run time, % repetition of prev sentence
+%which, in a language with dynamic dispatch, leads
+multiple dynamic dispatch, which leads
+to reasoning about the \emph{types} of intermediate values rather than only
+the concreteness bit. But if there was a tool for computing type information
+beforehand, a special-purpose analysis for type stability would not be needed: 
+it suffices to ask the tool for the type of the return value and
+check if that type is concrete. 
+%The observation of interactions between type
+%stability and type inference can be formulated
+This observation leads to the following conjecture:
 
 \begin{conjecture}
-  Inferring type stability of a Julia method statically is no easier than doing type
-  inference over that method.
+  Inferring type stability of a Julia method statically is no easier than
+  performing type inference of that method.
 \end{conjecture}
 
-A full type inference algorithm would be enough for checking type stability of
-Julia code. Should we build one from scratch? There are two reasons to
+A complete type inference algorithm would allow for checking type stability of
+Julia code. But should type inference be implemented from scratch? There are two reasons to
 not go this way.
 \begin{enumerate}
 
-  \item It is not clear that typing Julia without changing anything in the
-  language can yield a meaningful result (more on this
-  see~\cite{Chung23}).
+  \item It is not clear that inferring types for source-level Julia code
+  %typing Julia 
+  without changing anything in the language
+  can yield a meaningful result (more on this see~\cite{Chung23}).
+  For instance, in the \c{inc} example, a sound return type cannot be
+  much better than \c{Any}.
 
-  \item Julia already has a type inference engine built in. We modelled this
-        engine as a black box in~\chapref{chap:jules}. If we end up with a
-        custom algorithm to infer types and analyze type stability based on it,
-        our results may diverge from Julia's. This would be of limited usage for
-        Julia users.
+  \item Julia already has a built-in type inference engine, which 
+    was modeled as a black box in~\chapref{chap:jules}. 
+    This engine is used for code optimizations. 
+    Thus, analyzing type stability based on a custom type inference 
+    algorithm 
+    %to infer types and analyze type stability 
+    can produce results that diverge from Julia, misleading the users
+    about potential optimizations.
+    %our results may diverge from Julia's. 
+    This would be of limited usage for Julia users.
 \end{enumerate}
 
 \section{An Algorithm To Infer Type Stability}%
@@ -167,10 +181,11 @@ not go this way.
 \label{ssec:algo:high}
 
 If our predictions for type stability are to align with the Julia
-implementation, our analysis should closely model what happens at the run time,
+implementation, the analysis should closely model Julia's run-time behavior,
 as described in~\chapref{chap:jules}. The type-specializing JIT-compiler
 from~\chapref{chap:jules} makes optimization decisions based on \emph{concrete
-  input types} with the help of Julia's type inference engine. Our algorithm for
+  input types} with the help of Julia's type inference engine. 
+Therefore, the algorithm for
 predicting these decisions statically considers all (or as many as possible,
 see~\secref{sec:approx:space}) allowed concrete input types of a method.
 \figref{fig:infer-ts} describes this algorithm at a high level.
@@ -183,10 +198,10 @@ The list below also assigns the numbers to each step in the algorithm.
 \begin{description}
 
   \item[Step 1] The input of the algorithm is a Julia method. Methods in Julia are
-  represented by runtime objects of type \c{Method} and can be manipulated as
+  represented by run-time objects of type \c{Method} and can be manipulated as
   all other objects (e.g. stored in collections, responding to field accesses, etc.).
 
-  For example, consider the \c{length} method from the Julia's standard library. We can
+  For example, consider the \c{length} method from Julia's standard library. We can
   get the corresponding \c{Method} object using the standard \c{@which} macro
   applied to an application of the \c{length} method. This can be done in the
   Julia REPL (signified by the \texttt{julia>} prefix).
@@ -220,7 +235,8 @@ The list below also assigns the numbers to each step in the algorithm.
 \end{lstlisting}
 \end{minipage}
 
-  A signature of a method will usually have the special singleton function
+  A signature of a method %will usually have 
+  contains the special singleton function
   type (\c{typeof(...)}) as the first component, and the rest is (easy to
   convert to) the type of the input --- an $n$-tuple. In this example, the type of
   the input is 1-tuple, consisting of the existential array type
@@ -243,10 +259,10 @@ A user can always look under the abbreviation using the \c{dump} function.
 % \end{lstlisting}
 }.
 
-  \item[Step 3] The input type can be either concrete, which, in Julia, means there may
-  be no proper subtypes of that type, or abstract. Still, the choice on the
-  current step will enter the loop at least once, because if the input type is
-  concrete, the check holds once trivially (e.g.\ there is exactly one concrete
+  \item[Step 3] The input type can be either concrete, which, in Julia, means that there can
+  be no proper subtypes of that type, or abstract. In either case, the choice on the
+  current step will enter the loop at least once, because for concrete input type,
+  the check holds once trivially (e.g.\ there is exactly one concrete
   subtype of the concrete type \c{Int} --- it is \c{Int} itself).
 
   If the input type is abstract, we need a procedure enumerating all concrete
@@ -260,24 +276,26 @@ A user can always look under the abbreviation using the \c{dump} function.
   the concrete type is \c{Array\{Float64, 1\}}.
 
   \item[Step 4] Running Julia's type inference for a given method and a given concrete input
-  type is done through calling the Julia's standard \c{code\_typed} function.
-  The only issue with the function is that it expects a function object as the
+  type is done by calling Julia's standard \c{code\_typed} function.
+  The only issue with the function is that it expects a function object as a
   part of the input, not a method object. But getting from a method to the
   corresponding function is possible using the signature field discussed above,
-  and, in particular, the singleton function type living in the first component
+  and, in particular, the singleton function type contained in the first component
   of the \c{sig} field: accessing the single function object using the function
   type is possible via the \c{instance} field.
 
   Running type inference for the \c{length} method and the concrete input type
   \c{Array\{Float64, 1\}} could be done as shown on \figref{fig:julia-type-infer}.
-  The return value is an array of \c{CodeInfo} objects, representing
-  the type-annotated method bodies of all methods that the given input type
-  could dispatch to (with a concrete input type and no ambiguities in method
-  definitions we always get one element in the array); also, the method body is
-  interpreted with a lower-level intermediate representation along the lines
-  discussed in \ssecref{ssec:perf} and \chapref{chap:jules}. In this case, the
+  The return value is an array of \c{CodeInfo} objects that represent
+  the type-annotated method bodies of all methods that a call with the given input type
+  could dispatch to (for a concrete input type and no ambiguities in method
+  definitions, the resulting array always contains exactly one element).
+  Method bodies are transformed into
+  a lower-level intermediate representation, similar to the one
+  discussed in \ssecref{ssec:perf} and \chapref{chap:jules}. 
+  In the running example, the
   method body contains a single call to an intrinsic Julia function that is
-  known to return a value of type \c{Int}.
+  known to return a value of type \c{Int64}.
 
   \begin{figure}[hbt]
 % \begin{minipage}{.92\textwidth}
@@ -298,10 +316,10 @@ A user can always look under the abbreviation using the \c{dump} function.
 % \end{verbatim}
 % \end{minipage}
 
-  \item[Step 5] In the running example and for the concrete input type \c{Array\{Float64, 1\}}
-  the type inferencer is able to deduce that the return type of \c{length}
-  called with the given input type is \c{Int64}, which is a concrete type
-  according to the standard Julia's \c{isconcretetype} predicate.
+  \item[Step 5] Concreteness of the inferred return type is checked 
+  with the standard Julia \c{isconcretetype} predicate. 
+  In the running example, for the concrete input type \c{Array\{Float64, 1\}},
+  the return type of \c{length} is inferred to be \c{Int64}, which is a concrete type.
   Following the second decision element on \figref{fig:infer-ts}, we get back to
   the start of the loop and try another concrete subtype of the input type,
   if there is any.
@@ -350,38 +368,40 @@ julia> subtypes(AbstractSet)
 \end{minipage}
 \end{figure}
 
-The challenge here is that the subtype relation in Julia is richer than the
+The challenge here is that Julia's subtype relation is richer than the
 nominal type hierarchy. For example, if a method declares the type of its input
 as
 \begin{lstlisting}
   Union{AbstractSet, AbstractRange}
 \end{lstlisting}
 then the method can be called with an argument of type \c{Set\{Int\}}, and,
-therefore, we should be able to discover such a type following the algorithm
-on~\figref{fig:infer-ts}. It is not possible with the \c{subtype} method alone:
-from \c{subtypes}' point of view the union type above has no subtypes:
+therefore, it should be possible to discover such a type following the algorithm
+on~\figref{fig:infer-ts}. However, it is not possible with the \c{subtype} method alone:
+from \c{subtypes}' point of view, the union type above has no subtypes:
 \begin{lstlisting}[style=jterm]
   julia> subtypes(Union{AbstractSet, AbstractRange})
   Type[]
 \end{lstlisting}
-(the query returns an empty array of elements of the type \c{Type})
-Therefore, the structural types that has special subtyping rules, like unions,
-tuples and existential types, need a special treatment.
+(the query returns an empty array of elements of the type \c{Type}).
+Therefore, structural types %that have special subtyping rules, like 
+such as unions,
+tuples, and existential types, need a special treatment.
 
 The \c{subtypes} method does not cover the whole subtyping relation not only
-because it cannot work with structural types but also because it only knows
-about direct declared subtypes: in the subtype chain
-\c{Int <: Signed <: Integer}, \c{subtypes} only knows about \c{Int <: Signed}
-and \c{Signed <: Integer} but not about \c{Int <: Integer}. Thus, we have to build
+because it cannot work with structural types but also because it is limited
+to direct declared subtypes. For example, in the subtype chain
+\c{Int <: Signed <: Integer}, \c{subtypes} reports only \c{Int <: Signed}
+and \c{Signed <: Integer} but not \c{Int <: Integer}. Thus, we have to build
 the transitive closure manually.
 
-In the following subsection, I show how to generalize the \c{subtypes} method to
+In the following subsection, I show how to generalize the \c{subtypes}\!\!method to
 a method I call \c{direct_subtypes} that produces direct subtypes for a Julia
-type of any form. Starting from the signature of a method we are checking for
-type stability and iterating applications of the \c{direct_subtypes} method
-builds the transitive closure mentioned above.
+type of any form. Then, the transitive closure mentioned above can be
+obtained by iterating \c{direct_subtypes} applications,
+starting from the signature of a method we are checking for
+type stability.
 
-After getting all subtypes of a given type, it is possible to filter for concrete
+After generating all subtypes of a given type, it is possible to filter for concrete
 subtypes using the built-in Julia predicate \c{isconcretetype}. This completes
 the task of enumerating concrete subtypes and the description of the algorithm
 as presented on \figref{fig:infer-ts}.
@@ -389,22 +409,23 @@ as presented on \figref{fig:infer-ts}.
 
 \subsubsection{Enumerating Direct Subtypes}
 
-Our goal is to define a general utility generating direct subtypes of a given
-type, which we call \c{direct_subtypes}.
+My goal in this section is to define a general utility generating direct subtypes of a given
+type, which I call \c{direct_subtypes}.
 % \begin{lstlisting}
 %   const JlType = Any   # type synonym
 %   function direct_subtypes(t :: JlType) :: Vector{JlType} ...
 % \end{lstlisting}
-We do case analysis on the existing Julia kinds and express it as methods
+This is done by case analysis on the existing Julia kinds (i.e., types of types)
+and expressed with multiple methods
 of the \c{direct_subtypes} function. The implementation largely follows from the
 description of Julia's subtyping relation given in~\cite{oopsla18b}.
 
 The \c{direct_subtypes} utility can be defined, for the most part, via multiple dispatch
 using Julia's kind system.
-The only special sort of types that does not have a dedicated kind is tuple types.
-purpose. In particular, although tuple types fall under the datatype kind,
+The only special sort of types that does not have a dedicated kind is the tuple type.
+In particular, although tuple types fall under the \c{Datatype} kind,
 the standard \c{subtypes} method cannot help with tuple types as much as it can with user-defined datatypes.
-For example:
+For example,
 both \c{Integer} and \c{Tuple\{Integer, Integer\}} are datatypes, but
 \c{subtypes} returns an empty array of types for the latter.
 
@@ -429,16 +450,16 @@ both \c{Integer} and \c{Tuple\{Integer, Integer\}} are datatypes, but
 \begin{description}
 
   \item[Union Types]
-        Unions in Julia has the kind \c{Union} and a form of \c{Union\{A,B,C\}}
+        Unions in Julia have the kind \c{Union} and a form of \c{Union\{A,B,C\}}
         with arbitrary number of arguments \c{A, B, C}.
         Direct subtypes of \c{Union\{A,B,C\}} is the following list of types: \c{[A,B,C]}.
 
   \item[Existential Types]
-        Existential types in Julia has the kind \c{UnionAll} and a form of
-        \lstinline|Vector{T}| \c{where T} commonly abbreviated as \c{Vector}. Every
+        Existential types in Julia have the kind \c{UnionAll}\!\!and a form of
+        \c{t where T}, e.g. \lstinline|Vector{T}| \c{where T}, commonly abbreviated as \c{Vector}. Every
         \c{where}-bound type variable has associated upper and lower bounds with
         default values \c{Any} and \c{Union\{\}} (the top and bottom types),
-        respectively. Direct subtypes of an existential type is all
+        respectively. Direct subtypes of an existential type are all
         instantiations of its variable allowed by the bounds. In particular, we
         need to compute all subtypes of the upper bound, filter out those not
         satisfying the lower bound, and use the resulting set of types to
@@ -476,14 +497,15 @@ Vector{Int8}
         (e.g. \c{AbstractSet\{Int\}}).
 
   \item[Tuple Types]
-        Tuples play a key role in method dispatch because methods with
-        more than one argument have a tuple input type. As the \c{subtypes} method
+        Tuples play a key role in method dispatch because method
+        %with more than one argument have 
+        signatures and arguments are represented with tuple types. As the \c{subtypes} method
         cannot work with tuples (for any input tuple, it returns an empty
-        array), we need to manually unfold tuple types using the following rule
+        array), tuple types are unfolded according to the following rule:
         \begin{itemize}
           \item direct subtypes of the 0-tuple type is an empty set;
-          \item direct subtypes of a 1-tuple type are the direct subtypes of its
-          single type argument;
+          \item direct subtypes of a 1-tuple type are 1-tuples of the direct 
+          subtypes of its single type argument;
           \item direct subtypes of an $n$-tuple type are a Cartesian product of
           direct subtypes of its first component and direct subtypes of the last
           $n-1$ components.

@@ -284,14 +284,13 @@ is a list of categories that we identify in this family.
 
 \lstset{basicstyle=\footnotesize\ttfamily,linewidth=.93\textwidth}
 
-\ADD{
 \item
   Various forms of the identity function---a surprisingly popular function that
   packages keep reinventing. In an impure language, such as Julia, an identity
   function can produce various side effects.
   For example, the Genie package adds a caching effect to
   its variant of the identity function:
-}
+
 \begin{lstlisting}[language=julia]
 # Define the secret token used in the app for encryption and salting.
 function secret_token!(value::AbstractString=Generator.secret_token())
