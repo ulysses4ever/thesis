@@ -631,8 +631,8 @@ be in the subtype relation with the underconstrained type in the method
 signature in question, which can be tested for using Julia's built-in \c{<:}
 predicate. In practice, this requirement is hard to satisfy for abstract types
 more interesting then \c{Any}. Luckily, \c{Any} is the most frequent reason for
-diverging search: either it appears in the function signature itself or as an
-upper bound of an existential type.
+diverging search working as the default type for not annotated parameters and
+unbounded existentials.
 
 For the sample set of concrete Julia types, I propose a tactic based on the type
 stability tracing framework discussed in~\chapref{chap:empirical}. In
