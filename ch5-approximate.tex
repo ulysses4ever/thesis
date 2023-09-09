@@ -616,29 +616,54 @@ control the search space to avoid looping and excessive search time.
 \subsection{Fuel}
 
 The simplest heuristic to limit the number of nodes to explore on the subtype tree
-is to put an arbitrary upper bound on that number~--- the idea commonly referred
+is to put an arbitrary upper bound on that number---the idea commonly referred
 to as \emph{fuel}. The amount of fuel may be determined empirically, for
-example, taking the maximum over numbers of types explored during successful type
-stability checks in a corpus of code.
+example, taking the maximum number of types explored during a successful type
+stability check in a corpus of code.
 
-The idea implemented straightforwardly may not be very helpful in a tree search
-algorithm where we are interested in leaves (concrete types) only: in general,
-the algorithm may run out of fuel before exploring any concrete types and,
-therefore, before performing any checks. Example of this may be any on the
-corner cases listed in \ssecref{ssect:uconstr-types}, but especially easy to see
-with the corner case 3~--- an infinite chain of recursive applications of
+Fuel can be interpreted broadly.
+The most straightforward approach, currently used in my stability
+approximation algorithm, is to limit the number of types discovered during
+the tree search.
+Alteratively, one could limit the number of concrete
+types explored, or the number of applications of parametric types during
+one search, etc.
+Because we are interested only in tree leaves (concrete types),
+in general,
+the algorithm based on the straightforward interpretation of fuel
+may run out of fuel before exploring any concrete types and,
+therefore, before performing any checks.
+An example of this may be any on the
+corner cases listed in \ssecref{ssect:uconstr-types}, 
+but the issue is especially easy to see
+with the corner case 3, where a subset of concrete subtypes is produced 
+by an infinite chain of recursive applications of
 a parametric type.
 
-The idea can be applied in more clever ways, e.g.: limit the number of concrete
-types we explore, or limit the number of applications of parametric types during
-one search. This can be explored further.
+% The idea implemented straightforwardly 
+% may not be very helpful in a tree-search
+% algorithm where we are interested in leaves (concrete types) only: in general,
+% the algorithm may run out of fuel before exploring any concrete types and,
+% therefore, before performing any checks. An example of this may be any on the
+% corner cases listed in \ssecref{ssect:uconstr-types}, but the issue is especially easy to see
+% with the corner case 3, where a subset of concrete subtypes is produced 
+% by an infinite chain of recursive applications of
+% a parametric type.
 
-In practice, the plain number of types discovered parameter is most useful if we employ it
-only to catch cases where the search goes awry. Effectively, this allows for a
-constructive definition for underconstrained types described informally in
-\ssecref{ssect:uconstr-types}. Once the fuel runs out, the algorithm decides
-that an underconstrained type is hit and can apply other techniques, including
-ones described below but also any others.
+In the stability approximation algorithm, the fuel parameter
+is used primarily to detect cases where the search space explodes.
+This effectively allows for a
+constructive definition of underconstrained types described informally in
+\ssecref{ssect:uconstr-types}: if the tree generation for the given type runs out
+of fuel, the type is considered underconstrained, and the enumeration
+of subtypes is terminated. In this case, the algorithm employs other techniques
+for approximating type stability, as described below.
+% In practice, the plain number of types discovered parameter is most useful if we employ it
+% only to catch cases where the search goes awry. Effectively, this allows for a
+% constructive definition for underconstrained types described informally in
+% \ssecref{ssect:uconstr-types}. Once the fuel runs out, the algorithm decides
+% that an underconstrained type is hit and can apply other techniques, including
+% ones described below but also any others.
 
 \subsection{Sampling Concrete Types}
 
