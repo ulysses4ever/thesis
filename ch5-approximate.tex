@@ -881,21 +881,83 @@ The possible outcomes of the updated algorithm are as follows.
   of fuel and, if requested, sampling from a types database.
 \end{enumerate}
 
-Notice that the meaning of the last outcome changes significantly depending on whether
-sampling is used. If sampling is not used, then most likely we did not get to
-check any concrete type, and this should really be treated as an ``I don't know''
-outcome. On the contrary, if sampling is used and we have a reason to believe
-that the type database consists of a representative sample of types that a
-program of interest could encounter, then this outcome should be treated as
-``most likely type stable on our workload''.
-
 
 \section{Evaluation}%
 \label{sec:approx:eval}
 
 In \chapref{chap:empirical} I describe dynamic type stability analysis of a
-corpus of open-source Julia packages via executing test suites of the packages and
-inspecting the resulting method instances collected from the internal state of
-the virtual machine. Here, I run the algorithm from \secref{sec:approx:algo} to
-statically infer type stability of the same packages and match the
-results.
+corpus of open-source Julia packages. The analysis is based on executing test
+suites of the packages and inspecting the resulting method instances collected
+from the internal state of the virtual machine. To evaluate the algorithm
+proposed in this chapter, I run my implementation of the algorithm to statically
+infer type stability of methods in the 10 packages discussed in
+\chapref{chap:empirical}. The full list of packages is given on
+\tableref{empirical:fig:top}, which also serves as a reference
+point in the discussion below.
+It is not possible to directly compare the numbers because the
+two analysis capture different sets of methods, but some similarities are to be
+expected.
+
+\figref{figs:approx:eval} is derived from numbers produced by
+running the tool implementing the algorithm without a types database (left
+column of every pair of columns) and with the database (right column)
+for each of the 10 packages. Every package name has the number of methods
+inspected below it.
+
+\begin{figure}[ht]
+  \makebox[10cm][c]{
+       \includegraphics[width=1.5\textwidth]{figs/sts-eval/chart.pdf}
+  }
+\caption{Inferring Type Stability for the 10 popular Julia packages}%
+\label{figs:approx:eval}
+\end{figure}
+
+On average over the 10 packages, the analysis identified 54\% of methods as type
+stable without sampling, and 69\% of methods as type stable with sampling. The
+last figure comes close to the average 72\% of type-stable methods traced via
+dynamic analysis. As expected, our static approach is more conservative in granting the
+badge because it explores more possibilities for the inputs than what actually
+occurs in test suites.
+
+The package having the highest percentage of type-stable methods remains the same as
+with the dynamic analysis --- Genie. This is an encouraging result: sometimes static
+analysis tools report too many false positive to be viable in practice.
+The same is not necessarily an issue with our approach, as
+the present analysis of Genie shows: a package that does not have type stability
+issues in practice is also reported as such by the tool.
+
+The least type-stable package, according to the dynamic analysis is Knet, and it
+is also identifiable on \figref{figs:approx:eval}. The only difference is that
+on the figure most of the methods in Knet are marked as \emph{NoFuel} (80\%)
+instead of \emph{Unstable}. The \emph{NoFuel} metrics corresponds to the third
+of the three possible outcomes listed in \secref{sec:approx:algo-final}. This
+result for Knet shows that the \emph{NoFuel} metrics should, perhaps, be
+interpreted as \emph{Unstable}, at least, for the packages which we know to have issues
+with type stability.
+
+Close to Knet in the amount of methods marked \emph{NoFuel} is
+DifferentialEquations (called DiffEq for brevity on the figure), 76\% (24\%
+\emph{Stable}), which is a significant difference from the results of dynamic
+analysis where it comes as 70\% stable. A probable reason for this is a
+considerably different sample of methods analyzed: due to the structural
+peculiarities of the package, organized as several subpackages, the current
+implementation only processed a portion of methods (namely, those belonging to
+one subpackage DiffEqBase). The methods analyzed here constitute about $1/5$ of
+methods captured during dynamic analysis. The increase in the number of methods
+not identified as type stable is the only significant one (more than 25
+percentage points): all other packages has this number increased in less
+than 20 percentage points with respect to the results of the dynamic analysis.
+
+Sampling makes the largest difference for packages that have more
+\emph{NoFuel}-methods, which is to be expected. Foe example, $20$ or more
+percentage points increase in the number of stable methods due to sampling is
+found in least type-stable packages: Knet, DifferentialEquations, Gen and Flux.
+Unexpected is that finding counterexamples, i.e. increasing
+the number of unstable methods, is not always in a rigid correlation with the
+number of \emph{NoFuel}-methods. Foe example, adding sampling for DifferentialEquations
+(76\% \emph{NoFuel} initially) gives an increase in unstable methods by 3 percentage
+points, whereas sampling for JuMP (53\% \emph{NoFuel} initially, just above the median value
+of 46\%) gives an increase in unstable methods by 7 percentage points. Adding
+sampling does produce non-neglegible number of counterexamples but, perhaps, could
+be improved using types databases created specifically to reflect the use cases
+of a package under analysis.
