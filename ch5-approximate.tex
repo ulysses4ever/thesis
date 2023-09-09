@@ -655,43 +655,63 @@ point in the subtype lattice and are unable to reach concrete types at the
 bottom of the lattice. 
 A natural idea to overcome the issue is to start from
 low points in the lattice instead, and in particular---from concrete types.
-Since the number of concrete types is infinite,
+Since the number of concrete types is infinite (see, for example,
+corner case 3 in \ssecref{ssect:uconstr-types}),
 in order to realize the idea, one needs to collect a sample of concrete types.
 The sample can then be stored as a \emph{database} that is available at the
 type-stability inference time.
 
-The challenge with starting from the bottom of the lattice is to choose which concrete
-types to put in the database.
-For example, we could use some fixed universe of Julia types, 
-such as all types defined in Julia packages. 
-For approximating type stability, it is necessary that concrete
-types used for type inference are in the subtype relation with the underconstrained type in the method
-signature in question; this can be checked using Julia's built-in 
-\c{<:} predicate. However, if the sample does not contain enough such subtypes,
-the approximation would be too imprecise.
-%In practice, this requirement is hard to satisfy for abstract types
-%more interesting then \c{Any}. 
-Luckily, the most frequent reason for diverging enumeration of types is the \c{Any}
-type---the supertype of all types, which is the default for unannotated
-method parameters and unbounded existentials.
-%Luckily, \c{Any} is the most frequent reason for
-%diverging search working as the default type for not annotated parameters and
-%unbounded existentials.
+Regarding the idea of starting from the bottom of the lattice, there are two
+challenges we need to address.
 
-%For the sample set of concrete Julia types, I propose a tactic based on the type
-As a startegy for collecting concrete Julia types, I propose an approach based
+\begin{enumerate}
+
+  %First challenge with using a sample of concrete types is to choose
+  \item
+  \emph{Which concrete types to put in the database?}
+We could use some fixed universe of Julia types,
+such as all types defined in Julia packages. This approach breaks in the
+presence of parametric types, which require a type argument to become a valid
+type. This brings back the issue described in
+corner case 3 (\ssecref{ssect:uconstr-types}).
+
+As a strategy for collecting concrete Julia types, I propose an approach based
 on the type-stability tracing framework discussed in~\chapref{chap:empirical}. In
 particular, I run test suites of popular Julia packages and record which
 concrete types are used to instantiate methods.
 This way, the sample contains a variety of concrete types relevant to specific
 packages, including fully instantiated parametric types.
-%This avoids an issue with the simplest approach mentioned above, namely trying
-%all declared concrete Julia types: that tactic is not specific enough,
-%because some of the declared types are parametric, and we are back to the
-%question of how to instantiate the parameters.
 
-There is one technical obstacle to using concrete types seen elsewhere for the purpose
-of type stability inference in the current Julia session. Recovering types from
+  %Second challenge with using a sample of concrete types is to choose
+  \item
+  \emph{At which moment start using the database?} %instead of the basic enumeration approach.
+One obvious idea is, when noticing that fuel runs out during enumeration, to
+terminate the search and start sampling as if the search was never started.
+In that case, the types coming from the database should be checked for being
+in the subtype relation with the method's input type (can be done
+using Julia's built-in \c{<:} predicate). The issue is:
+if the database does not contain (many) such subtypes,
+we still have the problem with not getting concrete types to check type
+stability against.
+
+In practice, the most frequent reason for diverging enumeration of types
+is the \c{Any} type~--- the supertype of all types, which is the default for
+unannotated method parameters and unbounded existentials. Using this
+observation, I propose to mold enumeration and sampling as follows. The
+algorithm switches from the former to the latter when it hits \c{Any}.
+In particular, when the enumeration procedure calls
+\c{direct\_subtypes} on \c{Any}, the utility returns the types from the database
+(up to a certain bound if the database is too big).
+After that, the algorithm will proceed as usual without any other change.
+Eventually, either the enumeration procedure runs out
+of fuel, or it finishes with a success. Overall, this approach seems to fit better
+with the idea to serve both, unannotated method parameters and unbounded
+existentials.
+
+\end{enumerate}
+
+There is one technical obstacle to using a sample of types seen elsewhere
+in the current Julia session. Recovering types from
 other sessions requires an environment where the name of the type can be
 successfully resolved. Concretely, to recreate a necessary environment means
 installing some Julia packages.
