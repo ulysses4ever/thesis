@@ -2,49 +2,6 @@
 
 \lstset{language=julia}
 
-% \paragraph{Plan of attack}
-% \begin{enumerate}
-
-% \item
-% Inferring type stability versus inferring types
-
-% \item
-% Method: Using Julia's built-in type inferencer to approximate type stability.
-
-% \item
-% Basic algorithm
-% - flowchart, main steps, running example
-
-% \item
-% Enumerating concrete subtypes
-
-% Meta: features of the algorithm I'd like to discuss at some point.
-% - Corner cases, termination, fuel.
-% - Limitations: incompleteness and unsoundness.
-% - Relation to Julia subtyping.
-
-% \item
-% Search space explosion
-% due to under-constrained types, e.g.:
-% - ''fat'' (i.e. many subtypes) abstract types like Any
-% - unbounded existentials
-%
-% We propose three approaches to fight this problem:
-% - fuel
-% - run type inference with Any: concrete result means it's stable
-% - the types DB idea
-
-% \item 
-% Implementation
-% - User's API (macro and otherwise)?
-% - Processing Julia modules: pitfalls and workarounds.
-
-% \item
-% Evaluation
-% - Results on 10 popular Julia packages.
-
-
-% \end{enumerate}
 
 Chapters~\ref{sec:empirical} and~\ref{sec:jules} consider type stability as it
 relates to program \emph{execution}: chapter~\ref{sec:empirical} analyzes the
@@ -865,7 +822,9 @@ In \chapref{chap:empirical}, I describe a dynamic type stability analysis of a
 corpus of open-source Julia packages. The analysis is based on executing test
 suites of the packages and inspecting the resulting method instances collected
 from the internal state of the virtual machine. To evaluate the algorithm
-proposed in this chapter, I run my implementation of the algorithm to statically
+proposed in this chapter, I run my implementation of the algorithm%
+\footnote{\url{https://github.com/prl-julia/julia-type-stability-checker}}
+to statically
 infer type stability of methods in the 10 packages discussed in
 \chapref{chap:empirical}. The full list of packages is given on
 \tableref{empirical:fig:top}, which also serves as a reference
