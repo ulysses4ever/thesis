@@ -1,0 +1,44 @@
+\chapter{Conclusions}%
+\label{chap:conc}
+
+In this dissertation I describe a program property called type stability and the
+ways it is employed in the Julia programming language. To that end, I make
+several contributions, which, hopefully enable better understanding of the
+language itself and the general problem of utilization of run-time type
+information in dynamic, just-in-time compiled languages.
+
+First, in \chapref{chap:empirical} I show that the type stability property is
+widely exercised in open source Julia packages. This finding may come as a
+surprise given that there is no automated tools exist to check the property.
+Perhaps, much of the Julia code is type stable because it is the most natural
+way to express algorithms in the language. I show that certain ubiqituos code
+patterns, e.g. type-constant functions or generic transformations, naturally
+lead to a type stable code. On the other hand, I point out certain code
+patterns, especially those coming from traditional object-oriented languages,
+that produce type unstable code. These are relatively well-known in the Julia
+community and warned about in the language manual, which helps maintaining high
+percentage of type stable code overall. Most encouraging is that Julia packages
+aimed at performance-critical application have explicit notes about trying to
+abide the property.
+
+Second, my formal model of the Julia JIT in \chapref{chap:jules} helps to
+pinpoint the relationship with type stability and runtime optimizations. The
+Jules virtual machine recognizes code that I call type grounded and that can
+only rely on type-stable APIs, and turns it in the most optimized version that I
+call \emph{full devirtualization}. In practice, not every algorithm can be
+easily coded in a type grounded fashion, so the property may be too demanding on
+the first glance. My idea behind type groundedness is that it gives an ideal
+that facilitates the argument for type stability. Also, as
+\chapref{chap:empirical} shows, there is, actually, about half type grounded
+code in an average package.
+
+Lastly, the formal model in \chapref{chap:jules} studies type stability on the
+level of an intermediate representation inspired by Julia's own, but it is
+unlikely to be an optimal model for a casual Julia programmer. That is why in
+\chapref{chap:approx} I build an approach to understanding type stability in
+terms of the source level and without running the program. The approach
+reuses existing Julia tools like the type inferencer and the implementation of
+the subtyping relation. This idea of reusing key Julia components ensures that
+we always agree with what the optimizer does at run time. This is also an
+analysis that a library author can run at development time or as a part of their
+continuous integration setup, and does not cost the end-user any performance.
