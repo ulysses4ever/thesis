@@ -2,6 +2,8 @@
 %              Chap. 1: Intro
 % ****************************************************************************************
 
+\lstset{language=julia}
+
 \chapter{Background and Motivation}
 \label{chap:back}
 
@@ -107,7 +109,7 @@ This restriction stems from
 practical considerations: the memory layout of abstract types
 (\c{Integer}) and concrete types (\c{Int}) is different and can impact
 the representation of the parametric type.  In a type declaration,
-parameters can be used to instantiate the supertype.  This allows the
+parameters can be used to instantiate the supertype. This allows the
 declaration of a \c{Diagonal} as an
 \c{AbstractMatrix} of values of type \c{T}:
 \begin{lstlisting}[language=julia]
@@ -116,6 +118,16 @@ declaration of a \c{Diagonal} as an
     ...
   end
 \end{lstlisting}
+
+Julia allows instantiating type variables of parametric types with primitive
+values. For example, \c{Array\{Int, 1\}} denotes a type for arrays with one
+dimension and integer elements. There is no checking that parameters
+instantiated in a sensible way except when constructing values: defining a
+method with a parameter of type \c{Array\{1, Int\}} (note the reversed order of
+the arguments) is allowed, although such method will never be called because
+there are no values of this type, while trying to create a value of this type
+with the standard notation: \c{Array\{1,Int\}([1,2,3])} will fail with a message that
+no constructors for such type are defined.
 
 \paragraph{Tuple types.}
 Tuples are an abstraction of the arguments of a function; a tuple type is a
