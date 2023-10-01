@@ -74,6 +74,12 @@ library alone, and packages add more. Some of those methods are type stable
 (e.g. \c{+(::Int64,::Int64)}), and some of them are not (e.g.
 \lstinline|+(::Rational{Bool},::Rational{Bool}|)
 \footnote{%
+  The type \c{Rational\{Bool\}} represents rational numbers with boolean
+  numerator and denominator. The type is rarely useful but is allowed as a
+  consequence of the \c{Bool <: Number} subtyping and arithmetic operations on
+  boolean values. In the early history of Julia, the authors decided to count
+  \c{Bool} as a number type because it can be convenient in some applications.
+
   The reason for the
   \c{+(::Rational\{Bool\},::Rational\{Bool\})} method to be type
   unstable is not important, but in a nutshell, Julia has made a questionable
