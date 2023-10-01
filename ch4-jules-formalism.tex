@@ -301,15 +301,16 @@ becomes the return value of the call, and the top frame is popped from the stack
 
 Program execution begins with the frame $\emp\ \main()$%
 \footnote{Recall that unconditional calls are implicitly expanded into conditional ones.},
-i.e. a call to the \main function with an empty environment;
-the execution either diverges, finishes with a final configuration $\env\ \done$,
+i.e. a call to the \main function with an empty environment.
+The execution either diverges, finishes with a final configuration $\env\ \done$,
 or runs into an error.
+
 We define two notions of error. An \emph{err} occurs only in the \SC{Disp} rule,
 when the dispatch function $\mathcal D$ is undefined for the call; the \emph{err}
 corresponds to a dynamic-dispatch error in Julia. A configuration is
-\emph{wrong} if it cannot make a step for any other reason.
-%the program is ill-formed. while \emph{erred} states are merely ill-typed.
-%JB: we don't define a type system, so I would not use "ill-typed" terminology
+\emph{wrong} if it cannot make a step for any other reason. The well-formedness
+criteria below (\ssecref{wellform}) should rule out \emph{wrong} programs statically, but
+\emph{err}s may happen at run time.
 
 \begin{definition}[Errors] A non-empty configuration \frm, \mtbl
  that cannot step $\frm, \mtbl \step \frm', \mtbl'$ has \emph{erred} if its
@@ -415,7 +416,8 @@ translating a dynamically dispatched call into a direct call may be unsound.
   \]
 \end{requirement}
 
-\subsection{Well-Formedness}\label{wellform}
+\subsection{Well-Formedness}%\
+\label{wellform}
 
 Initial \jules configuration \config{\emp\ \main()}{\mtbl} is well-formed
 if the method table \mtbl is well-formed according to \defref{ref:def-well-formed}.
