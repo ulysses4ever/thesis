@@ -3,45 +3,47 @@
 
 In this dissertation I describe a program property called type stability and the
 ways it is employed in the Julia programming language. To that end, I make
-several contributions, which, hopefully enable better understanding of the
-language itself and the general problem of utilization of run-time type
+several contributions to facilitate better understanding of the
+language itself and, more generally, the use of run-time type
 information in dynamic, just-in-time compiled languages.
 
-First, in \chapref{chap:empirical} I show that the type stability property is
-widely exercised in open source Julia packages. This finding may come as a
-surprise given that there is no automated tools exist to check the property.
+First, in \chapref{chap:empirical}, I show that the type stability property is
+widely exercised in open-source Julia packages. This finding may come as a
+surprise given that there is no automated tool exists to check the property.
 Perhaps, much of the Julia code is type stable because it is the most natural
 way to express algorithms in the language. I show that certain ubiqituos code
 patterns, e.g. type-constant functions or generic transformations, naturally
-lead to type stable code. On the other hand, I point out certain code
+lead to type-stable code. On the other hand, I point out certain code
 patterns, especially those coming from traditional object-oriented languages,
-that produce type unstable code. These are relatively well-known in the Julia
+that produce type-unstable code. These are relatively well known in the Julia
 community and warned about in the language manual, which helps maintaining high
-percentage of type stable code overall. Most encouraging is that Julia packages
+percentage of type-stable code overall. Most encouraging is that Julia packages
 aimed at performance-critical application have explicit notes about trying to
-abide the property of type stability.
+abide by the property of type stability.
 
 Second, my formal model of the Julia JIT in \chapref{chap:jules} helps to
 pinpoint the relationship between type stability and runtime optimizations. The
 Jules virtual machine recognizes code that I call type grounded and that can
-only rely on type-stable APIs, and turns it in the most optimized version that I
-call \emph{full devirtualization}. In practice, not every algorithm can be
-easily coded in a type grounded fashion, so the property may be too demanding on
-the first glance. My idea behind type groundedness is that it gives an ideal
-that facilitates the argument for type stability. Also, as
-\chapref{chap:empirical} shows, there is, actually, about half type grounded
-code in an average Julia package.
+only rely on type-stable APIs, and turns it into the most optimized version that
+I call \emph{full devirtualization}. In practice, not every algorithm can be
+easily programmed in a type grounded fashion, so the property may be too
+demanding on the first glance. Yet, about half of the code analyzed in
+\chapref{chap:empirical} is in fact type grounded. Conceptually, the idea behind
+type groundedness is that it provides a radical reference point that facilitates
+the argument for type stability.
 
-Lastly, the formal model in \chapref{chap:jules} studies type stability on the
-level of an intermediate representation inspired by Julia's own, but it is
-unlikely to be an optimal model for a casual Julia programmer. That is why in
-\chapref{chap:approx} I build an approach to understanding type stability in
-terms of the source language and without running the program. The approach
-reuses existing Julia tools like the type inferencer and implementation of
-the subtyping relation. This idea of reusing key Julia components ensures that
-we always agree with what the optimizer does at run time. My program analysis
-can be run by a package author at the development time or as a part of their
-continuous integration setup, and does not cost the end-user any performance.
+Lastly, in \chapref{chap:approx}, I build an approach to understanding type
+stability in terms of the source language and without running the program. The
+motivation for this task comes from the fact that the formal model in
+\chapref{chap:jules} studies type stability on the level of an intermediate
+representation inspired by Julia's own, but it is unlikely to be an optimal
+model for a casual Julia programmer. The approach in \chapref{chap:approx}
+reuses existing Julia tools like the type inferencer and implementation of the
+subtyping relation. The idea of reusing the key Julia components ensures that
+the analysis always agrees with what Julia's optimizer does at run time. The
+analysis can be run by a package author at the development time or as a
+part of their continuous integration setup, and does not cost the end-user any
+performance.
 
 \section{Future Work}
 
@@ -52,15 +54,15 @@ and, by extension, what type instabilities will matter in practice. Therefore, a
 better aim for the evaluation may be a Julia application that has a more clear
 cost promise to the user. Currently, I am working with an industrial company
 that builds such an application, which consists of about 200K lines of Julia
-code. The application has a clear set of benchmark and a constant monitoring of
+code. The application has a clear set of benchmarks and a constant monitoring of
 performance regressions. This may be a fruitful setting for tailoring the
 approximation tool and ideas behind it (for example, the way types database
 is assembled).
 
 \paragraph{A tool for fixing type instabilities} The approach and tool described in
-\chapref{chap:approx} can serve as a bug catching tool if ran on every
-commit to a performance-oriented project to signal about any regression in type
-stability of the code. Often times, a bug catching tool can be turned into a bug
+\chapref{chap:approx} can serve as a bug catching tool if run on every
+commit in a performance-oriented project to signal any regression in type
+stability of the code. I think that the bug catching tool can be turned into a bug
 fixing one. Indeed, there are several recipes in the Julia manual that help to
 fix type instabilities but none of them were implemented as a tool, to the best
 of my knowledge. A tool to fix type instabilities may be a good extension for
