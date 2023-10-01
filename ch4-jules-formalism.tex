@@ -507,7 +507,7 @@ Thus, program behavior would be modified by compilation, which is undesired.
 
   \caption{\MODIFY{Compilation: extending method table with a specialized method
   instance (top rule) and replacing a~dynamically dispatched call with
-  a direct method invocation in the extended table (bottom-right)}}\label{compile}
+  a direct method invocation in the extended table (middle-right)}}\label{compile}
 \Description{Compilation: extending method table with a specialized method
   instance and replacing a~dynamically dispatched call with
   a direct method invocation in the extended table}
@@ -521,7 +521,7 @@ inferred type information, replacing non-\emph{err} dispatched calls with direct
 possible. Compilation begins with some bookkeeping. First, it ensures that there
 is no pre-existing instance in the method table before compiling;
 otherwise, the table is returned immediately without modification, by
-the bottom-left rule. Next, using dispatch,
+the bottom rule. Next, using dispatch,
 it fetches the most applicable original method to compile. Then, using concrete argument types,
 the compiler runs the type inferencer on the method's body, producing an
 instruction typing \ol{\ty'}. Because the original method table is well-formed,
