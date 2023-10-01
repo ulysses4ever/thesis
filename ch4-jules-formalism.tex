@@ -1033,7 +1033,17 @@ of the calling instruction.
 }
 
 \MODIFY{
-\begin{definition}[Context-Insensitive Type Inference]
+  \begin{definition}[Context-Insensitive Type Inference%
+    \footnote{%
+      It may look strange to apply the term \emph{context-insensitive}
+      to an interface of a static analysis rather than to a concrete analysis.
+      But the requirement I define here limits possible implementations of type inference in
+      a way that would not allow a context-sensitive analysis, and this is the reason I use
+      the term.
+      The reason I believe that context-sensitive analysis cannot satisfy the requirement is because
+      the requirement does not allow to distinguish call sites of methods.
+    }%
+]
   A type inference algorithm $\typeinfop$ is
   \emph{context-insensitive}, if, %inferring the result of a function call
   %produces a type that is no more precise than the inferred return type
