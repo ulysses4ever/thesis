@@ -482,11 +482,11 @@
 \newcommand{\SF}[1]{\mathsf{#1}}                %% plain font for code elements in math
 \newcommand{\SC}[1]{\textsc{#1}}
 \newcommand{\tinyb}[1]{\scalebox{0.8}{{\normalsize #1}}}  %%% small
-\renewcommand{\v}[1]{\EM{{\tinyb{\%}}\SF{#1}}}  %% variables start with a %
+\newcommand{\var}[1]{\EM{{\tinyb{\%}}\SF{#1}}}  %% variables start with a %
 \newcommand{\tdef}[2]{\EM{#1\!::\!\SF{#2}}}     %% type definition have a ::
 \newcommand{\val}{\EM{\SF{v}}}                  %% value
-\newcommand{\tv}[2]{\EM{\tdef{\v{#1}}{#2}}}     %%  a typed variable
-\newcommand{\ass}[2]{\EM{\v{#1} \leftarrow #2}} %%% assignment
+\newcommand{\tv}[2]{\EM{\tdef{\var{#1}}{#2}}}     %%  a typed variable
+\newcommand{\ass}[2]{\EM{\var{#1} \leftarrow #2}} %%% assignment
 \newcommand{\mdef}[3]{\EM{\tdef{\SF{#1}(#2)}{#3}}}  %%% method definition name(args) rettype
 \renewcommand{\int}{\EM{\SF{Int}}}              %% integers
 \renewcommand{\any}{\EM{\SF{Any}}}              %% any
@@ -495,8 +495,8 @@
 \newcommand{\tdecl}{\EM{\SF{d}}}                %% type declaration
 \renewcommand{\dyn}{\EM{*}}                     %% dyn
 \newcommand{\call}[2]{\EM{\SF{#1}(#2)}}         %% function call
-\newcommand{\cond}[4]{\EM{\ass{#1}{\v{#2} ~?~ #3 : #4}}}  %%% conditional assignment
-\newcommand{\get}[2]{\EM{\v{#1}[\SF{#2}]}}      %% field read
+\newcommand{\cond}[4]{\EM{\ass{#1}{\var{#2} ~?~ #3 : #4}}}  %%% conditional assignment
+\newcommand{\get}[2]{\EM{\var{#1}[\SF{#2}]}}      %% field read
 \renewcommand{\i}{\EM{\SF{i}}}                  %% integer
 \renewcommand{\j}{\EM{\SF{j}}}                  %% integer
 \renewcommand{\m}{\EM{\SF{m}}}                  %% integer
