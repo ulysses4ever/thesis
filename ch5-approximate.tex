@@ -348,7 +348,7 @@ from \c{subtypes}' point of view, the union type above has no subtypes:
 (the query returns an empty array of elements of the type \c{Type}).
 Therefore, structural types %that have special subtyping rules, like 
 such as unions,
-tuples, and existential types, need a special treatment.
+tuples, and existential types, need special treatment.
 
 The \c{subtypes} method does not cover the whole subtyping relation not only
 because it cannot work with structural types but also because it is limited
@@ -543,7 +543,7 @@ as follows.
     their own, etc., so it is not feasible to track the whole tree during the search.
 
   \item Existential types whose variable's upper bound is an underconstrained
-    type. Especially large search space is produced by existentials with \c{Any}
+    type. An especially large search space is produced by existentials with \c{Any}
     as the upper bound (\emph{unbounded existentials}, for short).
     Note that out of the 567 direct subtypes of \c{Any},
     quite a few types are unbounded existentials (e.g. \c{AbstractSet},
@@ -571,7 +571,7 @@ as follows.
 
 \end{enumerate}
 
-Too large (sometimes infinite) search space is the reason why, in general, the
+An overly large (sometimes infinite) search space is the reason why, in general, the
 algorithm builds only an approximation of the answer to a type stability
 inference query. In the rest of the section, I describe three concrete ways to
 control the search space to avoid looping and excessive search time.
@@ -800,7 +800,7 @@ Possible outcomes of the updated algorithm are as follows.
   \item The method is type stable through one of the three possible options.
 \begin{itemize}
   \item
-  The method is type stable if running Juila's type inference with declared
+  Running Juila's type inference with declared
   input types computes a concrete type of the output
   (\ssecref{ssec:approx:space:abstract}).
 
@@ -827,9 +827,9 @@ Possible outcomes of the updated algorithm are as follows.
   inferred as concrete ahead of time.
 
   \item
-  Cannot decide type stability because the algorithm ran out of fuel
-  while running the enumeration (no matter whether it was enhanced with a type
-  database or not).
+  The algorithm cannot decide type stability because it ran out of fuel
+  while performing the enumeration (no matter whether the enumeratrion
+  was enhanced with a type database or not).
 \end{enumerate}
 
 %TODO: example

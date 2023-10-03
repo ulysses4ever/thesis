@@ -42,7 +42,7 @@ with its supertype \c{APt}. Similarly, the methods \c{main} and \c{f} are added
 to the \jules method table, along with accessors for the fields of \c{Pt}, with
 bodies translated to the \jules intermediate representation.
 
-The \jules IR is similar to static single assignment form. Each statement can
+The \jules IR is similar to static single assignment form~\cite{ssa}. Each statement can
 access values in registers, and saves its result into a new, consecutively
 numbered, register. Statements can perform a dispatched call \c{f(\%2)}, direct
 call \c{x\!Pt(\%0)}, conditional assignment (not shown), and a number of other
@@ -401,10 +401,12 @@ $\typeof(\env') <: \ol{\ty'}$.
 The second requirement of type inference, monotonicity, is important to specialization:
 it guarantees that using more precise argument types for original method
 bodies succeeds and does not break assumptions of the caller about
-the callee's return type. If inference was not
-monotonic, then given more precise argument types, it could return
+the callee's return type. Consider what would happen if inference was not
+monotonic. In that hypothetical case, more precise argument types may lead
+type inference to returning
 a method specialization with a less precise return type. As a result,
 translating a dynamically dispatched call into a direct call may be unsound.
+We need this optimization sound, and that is why we require monotonicity.
 
 \begin{requirement}[Monotonicity]\label{prop:ti-monot}
   For all $\mtbl, \ol{\ty},
@@ -460,7 +462,9 @@ holds:
 The last requirement ensures that only the most specific original methods have
 specializations, which precludes compilation from modifying program behavior.
 %
-For example, consider type hierarchy
+To understand how program behaviour may be affected if the requirement is not
+met, consider the following example.
+A program contains a type hierarchy
 \c{Int<:Number<:Any} and function \c{f} with original methods for \c{Any} and
 \c{Number}. If there are no compiled method instances, the call \c{f(5)}
 dispatches to \c{f(::Number)}. But if the method table contained a specialized
@@ -573,7 +577,7 @@ type stable and type grounded.
 \end{definition}
 
 As all method instances are compiled from some original method definitions,
-type stabiltiy and groundedness for instances is defined in terms of their
+type stability and groundedness for instances is defined in terms of their
 originals.
 
 \begin{definition}\label{def:ground-inst}
@@ -660,7 +664,8 @@ the results of type inference.
 Next, let us review the definition from~\figref{fig:max-devirt} in more details.
 \SC{D-NoCall} states that an instruction without a call
 is maximally devirtualized. \SC{D-Disp} requires that for a dispatched call,
-\ol\ty does not have precise enough type information to resolve the call with
+\ol\ty does not have precise enough type information (i.e. some of the types of
+arguments are not concrete: $\ol\Ty \neq \idx{\ol\ty}{\ol\k}$) to resolve the call with
 $\mathcal{D}$. Finally, \SC{D-Direct} allows a direct call to a concrete method
 with the right type signature: as concrete types do not have subtypes, the
 \msig\m{\ol\Ty} with concrete argument types is exactly the definition that a call
