@@ -722,7 +722,7 @@ and full devirtualization.
 \inferrule[C-Direct]{
   \st = \cond\i\j{\call\m{\ol{\v\k}}}{\v\l} \and
   \ol\Ty = \idx{\ol\ty}{\ol\k} \and
-  \msig{\m}{\ol\Ty} \in \mtbl \and
+  \msig{\m}{\ol\Ty} \in \mtbl  \\\\
   \st' = \cond\i\j{\call{\msig\m{\ol\Ty}}{\ol{\v\k}}}{\v\l}
 }{
   \compst{\ol\ty}{\st}{\mtbl}{\S}{\st'}{\mtbl}{\S}
@@ -802,7 +802,7 @@ new maximally devirtualized instances.
 \end{proof}
 
 \begin{lemma}[Preserving Maximal Devirtualization]\label{lem:max-devirt}
-  For any well-formed method table \mtbl, register typing \ol\ty,
+  For any well-for\-med method table \mtbl, register typing \ol\ty,
   and instruction \st, if the method table is maximally devirtualized,
   \devirtm{\mtbl},  and the instruction \st is compiled,
   $\compst{\ol\ty}{\st}{\mtbl}{\S}{\st'}{\mtbl'}{\S'},$
@@ -913,10 +913,6 @@ new maximally devirtualized instances.
   \end{itemize}
 }
 \end{proof}
-
-%%%% JAN: If a method is fully devirtualized then of course it does not dispatch
-%% JB: the theorem puts together the lemmas and the run-time semantics.
-%%     Replaced by text for the main version.
 
 Putting it all together, I have shown that type-grounded methods
 compile to method instances without dynamically dispatched calls.
@@ -1038,7 +1034,7 @@ of the calling instruction.
 
 \MODIFY{
   \begin{definition}[Context-Insensitive Type Inference%
-    \footnote{%
+    \protect\footnote{%
       It may look strange to apply the term \emph{context-insensitive}
       to an interface of a static analysis rather than to a concrete analysis.
       But the requirement I define here limits possible implementations of type inference in
@@ -1507,7 +1503,7 @@ $\optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
               {\ol{\st_b}}.
           \]
           (b) If $\mtbl'$ contains a specialized method instance
-          $\langle \meth\m{\ol{\Ty}}{}\ol{\st'_b},\ \ol{\ty_o} \rangle$,
+          \[ \langle \meth\m{\ol{\Ty}}{}\ol{\st'_b},\ \ol{\ty_o} \rangle, \]
           then $\ol{\st'_b} \neq \done$ by the assumption on $\mtbl'$,
           and thus the desired relation is guaranteed by \SC{HM}:
           \[
@@ -1549,12 +1545,12 @@ $\optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
       $\env'\ \ol{\st'_b}$ are related in both cases, and the rest of
       the stacks did not change, we get that the entire stacks
       $\frm_2, \frm'_2$ are related:
-      \[
+      \begin{multline*}
         \eqstd
             {\stk{(\ol\Ty\,\ol{\ty'})}{\stk{(\ol\ty^\env \ty\,\ol\ty)}{\Delta}}}
-            {\stk{(\env'\ \ol{\st_b })}{\stk{(\env\ \st \,\ol{\st })}{\frm }}}
+            {\\\stk{(\env'\ \ol{\st_b })}{\stk{(\env\ \st \,\ol{\st })}{\frm }}}
             {\stk{(\env'\ \ol{\st'_b})}{\stk{(\env\ \st'\,\ol{\st'})}{\frm'}}}.
-      \]
+      \end{multline*}
       And thus we get the desired:
       \[
         \optconfig{\frm_2}{\mtbl}{\frm'_2}{\mtbl'}{\Delta'_1}.
@@ -1580,14 +1576,15 @@ $\optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
   and $\Delta_1 = \stk{(\ol\ty^\env \ty\,\ol\ty)}{\Delta}$,
   and we know that configurations step by making a function call.
   As a result, we get:
-  \[
+  \begin{multline*}
     \optconfig
       {\stk{(\env'\ \ol{\st_b })}{\stk{(\env\ \st \,\ol{\st })}{\frm }}}
       {\mtbl}
       {\stk{(\env'\ \ol{\st'_b})}{\stk{(\env\ \st'\,\ol{\st'})}{\frm'}}}
       {\mtbl'}
+      \\
       {\stk{(\ol\Ty\,\ol{\ty'})}{\stk{(\ol\ty^\env \ty\,\ol\ty)}{\Delta}}},
-  \]
+  \end{multline*}
   where $\ol{\ty'} = \typeinf{\mtbl}{\ol\Ty}{\ol{\st_b}}$ just like
   in the forward direction.
 
@@ -1944,14 +1941,15 @@ $  \optconfig{\frm_1}{\mtbl}{\frm'_1}{\mtbl'}{\Delta_1}$,
         \config{\stk{(\env'\ \ol{\st'_b})}{\stk{(\env\ \st\,\ol{\st'})}{\frm'}}}{\mtbl''},
       \]
       the resulting configurations are related,
-      \[
+      \begin{multline*}
         \optconfig
           {\stk{(\env'\ \ol{\st_b })}{\stk{(\env\ \st \,\ol{\st })}{\frm }}}
           {\mtbl}
           {\stk{(\env'\ \ol{\st'_b})}{\stk{(\env\ \st'\,\ol{\st'})}{\frm'}}}
           {\mtbl''}
+          \\
           {\stk{(\ol\Ty\,\ol{\ty'})}{\stk{(\ol\ty^\env \ty\,\ol\ty)}{\Delta}}},
-      \]
+      \end{multline*}
       and $\mtbl''$ has no stubs.
   \end{itemize}
 }
