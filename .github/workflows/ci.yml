@@ -20,7 +20,7 @@ jobs:
         with:
           root_file: main.tex
 
-      - uses: mdallasanta/ssh-scp-deploy@v1.0.4
+      - uses: marcodallasanta/ssh-scp-deploy@v1.0.4
         with:
           local: './main.pdf'
           remote: '~/.www/thesis.pdf'
